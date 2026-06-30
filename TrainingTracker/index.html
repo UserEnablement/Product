@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Training Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --navy-900:#0D2931;
+    --navy-700:#1A4C77;
+    --navy-500:#3273AC;
+    --navy-200:#7CB4E4;
+    --teal-700:#056666;
+    --teal-600:#077E7E;
+    --teal-400:#15C7C7;
+    --teal-200:#90F8F8;
+    --magenta-700:#6F2063;
+    --magenta-600:#9C2E8B;
+    --magenta-400:#DB63C9;
+    --magenta-200:#FFC3F6;
+    --gray-100:#F1F0F1;
+    --gray-300:#D7D4D7;
+    --gray-500:#8E868C;
+    --gray-700:#696267;
+    --gray-900:#252225;
+    --white:#FFFFFF;
+    --radius:10px;
+    --shadow:0 1px 2px rgba(13,41,49,.06), 0 4px 16px rgba(13,41,49,.08);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Inter',sans-serif;
+    background:var(--gray-100);
+    color:var(--gray-900);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px;}
+
+  /* Header */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:16px;margin-bottom:24px;flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{
+    width:44px;height:44px;border-radius:9px;flex-shrink:0;
+    object-fit:contain;background:white;
+  }
+  h1{
+    font-family:'Outfit',sans-serif;font-weight:700;font-size:1.5rem;
+    margin:0;color:var(--navy-900);letter-spacing:-0.01em;
+  }
+  .subtitle{margin:2px 0 0;color:var(--gray-700);font-size:.86rem;}
+
+  .btn{
+    font-family:'Inter',sans-serif;font-weight:600;font-size:.86rem;
+    border:none;border-radius:8px;padding:10px 16px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;transition:transform .08s ease, opacity .15s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--navy-700);color:white;}
+  .btn-primary:hover{background:var(--navy-900);}
+  .btn-ghost{background:white;color:var(--navy-700);border:1px solid var(--gray-300);}
+  .btn-ghost:hover{border-color:var(--navy-500);}
+  .btn-sm{padding:6px 10px;font-size:.78rem;border-radius:6px;}
+  .btn-danger-text{background:none;color:var(--magenta-700);border:none;font-weight:600;font-size:.78rem;cursor:pointer;padding:6px 8px;}
+  .btn-danger-text:hover{text-decoration:underline;}
+
+  /* Stat cards */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;}
+  .stat-card{
+    background:white;border-radius:var(--radius);padding:16px 18px;
+    box-shadow:var(--shadow);
+  }
+  .stat-num{font-family:'Outfit',sans-serif;font-weight:700;font-size:1.7rem;color:var(--navy-900);}
+  .stat-label{font-size:.78rem;color:var(--gray-700);margin-top:2px;}
+
+  /* Section card */
+  .card{
+    background:white;border-radius:var(--radius);box-shadow:var(--shadow);
+    margin-bottom:24px;overflow:hidden;
+  }
+  .card-head{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    padding:18px 20px 14px;border-bottom:1px solid var(--gray-100);
+  }
+  .card-head h2{font-family:'Outfit',sans-serif;font-size:1.05rem;margin:0;color:var(--navy-900);}
+  .card-head p{margin:2px 0 0;font-size:.8rem;color:var(--gray-700);}
+  .card-body{padding:18px 20px 20px;}
+
+  /* Matrix */
+  .matrix-scroll{overflow:auto;border:1px solid var(--gray-100);border-radius:8px;max-height:480px;}
+  table.matrix{border-collapse:collapse;width:100%;font-size:.82rem;}
+  table.matrix th, table.matrix td{padding:0;}
+  table.matrix thead th{
+    position:sticky;top:0;background:var(--navy-900);color:white;z-index:2;
+    font-family:'Outfit',sans-serif;font-weight:600;font-size:.74rem;
+    padding:10px 8px;text-align:center;white-space:nowrap;
+  }
+  table.matrix thead th:first-child{
+    position:sticky;left:0;top:0;z-index:3;text-align:left;padding-left:14px;min-width:190px;
+  }
+  table.matrix tbody td:first-child{
+    position:sticky;left:0;background:white;z-index:1;
+    padding:9px 14px;font-weight:600;color:var(--navy-900);border-right:1px solid var(--gray-100);
+    white-space:nowrap;
+  }
+  table.matrix tbody tr:nth-child(even) td:first-child{background:#FAFAFA;}
+  table.matrix tbody tr:nth-child(even) .cell{background-color:#FAFAFA;}
+  .cell{
+    text-align:center;cursor:pointer;border-bottom:1px solid var(--gray-100);
+    border-right:1px solid var(--gray-100);min-width:88px;padding:8px 6px;
+    transition:filter .1s ease;
+  }
+  .cell:hover{filter:brightness(0.96);}
+  .pill{
+    display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+    border-radius:6px;padding:5px 0;width:100%;font-weight:600;
+  }
+  .pill .score{font-size:.74rem;}
+  .pill .tag{font-size:.62rem;letter-spacing:.04em;text-transform:uppercase;opacity:.85;}
+  .pill-pass{background:#E3F8F4;color:var(--teal-700);}
+  .pill-fail{background:#FBE9F8;color:var(--magenta-700);}
+  .pill-pass-retry{box-shadow:inset 0 0 0 2px var(--magenta-600);}
+  .pill-empty{color:var(--gray-500);font-size:.72rem;border:1.5px dashed var(--gray-300);border-radius:6px;width:100%;padding:6px 0;}
+  .pill-empty:hover{border-color:var(--navy-500);color:var(--navy-500);}
+
+  /* Filters row */
+  .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  select, input[type=date], input[type=number], input[type=text]{
+    font-family:'Inter',sans-serif;font-size:.84rem;padding:8px 10px;
+    border:1px solid var(--gray-300);border-radius:7px;background:white;color:var(--gray-900);
+  }
+  select:focus, input:focus{outline:2px solid var(--teal-400);outline-offset:1px;border-color:var(--teal-600);}
+  label{font-size:.72rem;font-weight:600;color:var(--gray-700);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em;}
+  .field{display:flex;flex-direction:column;}
+
+  /* Records table */
+  table.records{width:100%;border-collapse:collapse;font-size:.84rem;}
+  table.records th{
+    text-align:left;font-size:.72rem;color:var(--gray-700);text-transform:uppercase;letter-spacing:.03em;
+    padding:8px 10px;border-bottom:2px solid var(--gray-100);font-weight:600;
+  }
+  table.records td{padding:10px 10px;border-bottom:1px solid var(--gray-100);}
+  table.records tbody tr:hover{background:#FAFAFA;}
+  .status-badge{
+    display:inline-block;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;
+    letter-spacing:.02em;text-transform:uppercase;
+  }
+  .status-pass{background:#E3F8F4;color:var(--teal-700);}
+  .status-fail{background:#FBE9F8;color:var(--magenta-700);}
+  .status-pass-retry{box-shadow:inset 0 0 0 2px var(--magenta-600);}
+  .retry-mark{font-size:.68rem;margin-left:3px;}
+  .empty-state{padding:36px 20px;text-align:center;color:var(--gray-700);font-size:.88rem;}
+
+  /* Add form */
+  .form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:end;}
+  .form-grid .field{min-width:0;}
+  .score-preview{
+    grid-column:1 / -1;display:flex;align-items:center;gap:10px;font-size:.84rem;
+    color:var(--gray-700);min-height:20px;
+  }
+
+  /* Modal */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(13,41,49,.45);display:flex;
+    align-items:center;justify-content:center;z-index:50;padding:20px;
+  }
+  .modal{background:white;border-radius:12px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+  .modal-wide{max-width:560px;}
+  .modal h3{font-family:'Outfit',sans-serif;margin:0 0 4px;color:var(--navy-900);font-size:1.1rem;}
+  .modal .modal-sub{font-size:.82rem;color:var(--gray-700);margin:0 0 18px;}
+  .modal .field{margin-bottom:14px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px;}
+
+  .manage-tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--gray-300);}
+  .tab-btn{background:none;border:none;padding:8px 14px;font-family:'Inter',sans-serif;font-weight:600;font-size:.84rem;color:var(--gray-700);cursor:pointer;border-bottom:2px solid transparent;}
+  .tab-btn.active{color:var(--navy-700);border-bottom-color:var(--navy-700);}
+  .manage-add-row{display:flex;gap:8px;margin-bottom:12px;}
+  .manage-add-row input[type=text]{flex:1;min-width:0;}
+  .manage-add-row input[type=number]{width:90px;}
+  .manage-list{max-height:280px;overflow:auto;border:1px solid var(--gray-100);border-radius:8px;}
+  .manage-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--gray-100);}
+  .manage-row:last-child{border-bottom:none;}
+  .manage-row input[type=text]{flex:1;min-width:0;border:1px solid transparent;background:transparent;padding:6px 8px;border-radius:6px;}
+  .manage-row input[type=text]:hover{border-color:var(--gray-300);}
+  .manage-row input[type=text]:focus{border-color:var(--teal-600);background:white;}
+  .manage-row input[type=number]{width:72px;border:1px solid transparent;background:transparent;border-radius:6px;}
+  .manage-row input[type=number]:hover{border-color:var(--gray-300);}
+  .manage-row input[type=number]:focus{border-color:var(--teal-600);background:white;}
+  .manage-row .max-label{font-size:.72rem;color:var(--gray-500);white-space:nowrap;}
+  .manage-empty{padding:24px;text-align:center;color:var(--gray-500);font-size:.84rem;}
+
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--navy-900);color:white;padding:10px 18px;border-radius:8px;
+    font-size:.84rem;box-shadow:var(--shadow);z-index:60;opacity:0;transition:opacity .25s ease;
+    pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+
+  .loading-screen{
+    position:fixed;inset:0;background:var(--gray-100);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:10px;z-index:100;
+  }
+  .spinner{width:28px;height:28px;border-radius:50%;border:3px solid var(--gray-300);border-top-color:var(--navy-700);animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  footer{text-align:center;font-size:.74rem;color:var(--gray-500);margin-top:6px;}
+  footer button{background:none;border:none;color:var(--gray-500);text-decoration:underline;cursor:pointer;font-size:.74rem;}
+
+  .conn-banner{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    padding:11px 16px;border-radius:9px;margin-bottom:20px;font-size:.84rem;
+  }
+  .conn-connected{background:#E3F8F4;color:var(--teal-700);}
+  .conn-disconnected{background:#FFF4EC;color:#8A5A1E;border:1px solid #F0DEC4;}
+  .conn-unsupported{background:var(--gray-100);color:var(--gray-700);border:1px solid var(--gray-300);}
+  .conn-banner strong{font-weight:700;}
+  .conn-banner .btn{flex-shrink:0;}
+
+  @media (max-width:720px){
+    .stats{grid-template-columns:repeat(2,1fr);}
+    .form-grid{grid-template-columns:1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div id="loadingScreen" class="loading-screen">
+  <div class="spinner"></div>
+  <div style="font-size:.86rem;color:#696267;">Loading your tracker…</div>
+</div>
+
+<div class="wrap" id="app" style="display:none;">
+
+  <div class="topbar">
+    <div class="brand">
+      <img class="brand-mark" src="data:image/jpeg;base64,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" alt="Company logo">
+      <div>
+        <h1>Training Tracker</h1>
+        <p class="subtitle">Oliver enablement completions at a glance</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost" id="openManage">Manage ⚙</button>
+      <button class="btn btn-ghost" id="openBackup">Backup ⇄</button>
+      <button class="btn btn-ghost" id="openExport">Export ↓</button>
+      <button class="btn btn-primary" id="openAdd">+ Log a completion</button>
+    </div>
+  </div>
+
+  <div id="connectionBanner"></div>
+
+  <div class="stats">
+    <div class="stat-card"><div class="stat-num" id="statEmployees">0</div><div class="stat-label">Employees tracked</div></div>
+    <div class="stat-card"><div class="stat-num" id="statCompletions">0</div><div class="stat-label">Completions logged</div></div>
+    <div class="stat-card"><div class="stat-num" id="statPassRate">0%</div><div class="stat-label">Pass rate (of logged)</div></div>
+    <div class="stat-card"><div class="stat-num" id="statOverall">0%</div><div class="stat-label">Overall coverage</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h2>Completion matrix</h2>
+        <p>Click any cell to log or update a score. Teal = pass, magenta = fail, dashed = not started.</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="matrix-scroll">
+        <table class="matrix" id="matrixTable"></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h2>All records</h2>
+        <p>Search, filter, edit or remove individual completions.</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="filters">
+        <div class="field">
+          <label>Search employee</label>
+          <input type="text" id="searchEmployee" placeholder="Type a name…" style="min-width:200px;">
+        </div>
+        <div class="field">
+          <label>Course</label>
+          <select id="filterCourse"><option value="">All courses</option></select>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="filterStatus">
+            <option value="">All statuses</option>
+            <option value="Pass">Pass</option>
+            <option value="Fail">Fail</option>
+          </select>
+        </div>
+      </div>
+      <div style="overflow:auto;">
+        <table class="records" id="recordsTable">
+          <thead>
+            <tr>
+              <th>Employee</th><th>Course</th><th>Date completed</th><th>Score</th><th>Status</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="recordsBody"></tbody>
+        </table>
+      </div>
+      <div id="emptyState" class="empty-state" style="display:none;">No records match your filters yet.</div>
+    </div>
+  </div>
+
+  <footer>
+    Data is saved in this browser only. Use <strong>Backup ⇄</strong> to transfer or combine data across devices. <button id="clearAllBtn">Clear all data</button>
+  </footer>
+</div>
+
+<div id="modalRoot"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const DEFAULT_COURSES = [
+  {id:'OF',  name:'Oliver Foundations',               max:16},
+  {id:'AF',  name:'Admin Fundamentals',                max:9},
+  {id:'MF',  name:'Multiplan Fundamentals',            max:10},
+  {id:'GH',  name:'Oliver GroupHealth Fundamentals',   max:10},
+  {id:'PPA', name:'OLLIE PPA Fundamentals',             max:10},
+];
+
+const DEFAULT_EMPLOYEES = ["Agnes Lech","Alejandra Kafie","Andre Fernandes Dias","Andrew MacLean","Aroldo Goulart","Augusto Consani","Bhumika Bhardwaj","Carlos Alberto Ventura Junior","Charlon Ignacio","Chris Lin","Cleomar Kerber","Corwyn Amendt","Daniel Talash","Dinesh Reddy Medipally","Elena Tikhonova","Fabio Pan","Gerald Cole","Graem Clark","Gregory Pereira","Harneet Deol","Hsin Chieh (Alice) Chien","Jagpreet Sidhu (Johal)","Jason Ho","Jerry Zhu","Kaue Castellani","Krishna Alloori","Lara Bell","Luciana Gomes Ferraz Fernandes Dias","Luis Ernandes","Marcelo Akira","Marcos Martini","Marie Inacio","Mohamed Al-Magdod","Nicole Calderon","Nychollas Della Monica","Odiong Eneh","Pamela Naval","Phillip Price","Rafael Trevisan","Ramana Guduru","Rao Thudi","Riyaad Ammantoola","Rodrigo Paris","Saziya Newton Mahida","Sharmila Gajendran","Siri Sagi","Soliat Yahaya","Sri Raga Madhuri Velpula","Tiago Steil","Torsten Lenk","Viktor Pak","Vinicius Florencio","Vinicius Rutsatz"];
+
+let COURSES = [];
+let EMPLOYEES = [];
+
+const RECORDS_KEY = 'training_records';
+const COURSES_KEY = 'training_courses';
+const EMPLOYEES_KEY = 'training_employees';
+let records = {}; // key: `${employee}||${courseId}` -> {date, score}
+
+function courseById(id){ return COURSES.find(c => c.id === id); }
+function recKey(emp, courseId){ return emp + '||' + courseId; }
+function statusFor(score, max){ return (score / max) >= 0.8 ? 'Pass' : 'Fail'; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function storageGet(key){
+  try{
+    const v = localStorage.getItem(key);
+    return v === null ? null : v;
+  }catch(e){
+    return null;
+  }
+}
+function storageSet(key, value){
+  try{
+    localStorage.setItem(key, value);
+    return true;
+  }catch(e){
+    showToast('Could not save to this browser — storage may be full or disabled.');
+    return false;
+  }
+}
+
+async function loadRecords(){
+  const v = storageGet(RECORDS_KEY);
+  records = v ? JSON.parse(v) : {};
+}
+async function saveRecords(){
+  storageSet(RECORDS_KEY, JSON.stringify(records));
+  if(fileConnected) await writeWorkbookToFile();
+}
+
+async function loadCourses(){
+  const v = storageGet(COURSES_KEY);
+  COURSES = v ? JSON.parse(v) : null;
+  if(!COURSES){
+    COURSES = JSON.parse(JSON.stringify(DEFAULT_COURSES)).map(c => ({...c, updatedAt: 0}));
+    await saveCourses();
+  }
+}
+async function saveCourses(){
+  storageSet(COURSES_KEY, JSON.stringify(COURSES));
+  if(fileConnected) await writeWorkbookToFile();
+}
+
+async function loadEmployees(){
+  const v = storageGet(EMPLOYEES_KEY);
+  EMPLOYEES = v ? JSON.parse(v) : null;
+  if(!EMPLOYEES){
+    EMPLOYEES = JSON.parse(JSON.stringify(DEFAULT_EMPLOYEES));
+    await saveEmployees();
+  }
+}
+async function saveEmployees(){
+  storageSet(EMPLOYEES_KEY, JSON.stringify(EMPLOYEES));
+  if(fileConnected) await writeWorkbookToFile();
+}
+
+/* ---------- Excel file connection (File System Access API + SheetJS) ---------- */
+const FSA_SUPPORTED = 'showOpenFilePicker' in window;
+let fileHandle = null;
+let workbook = null;
+let fileConnected = false;
+let connectedFileName = '';
+
+function idbOpen(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('training_tracker_fsa', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('handles');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbGetHandle(){
+  try{
+    const db = await idbOpen();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction('handles', 'readonly');
+      const req = tx.objectStore('handles').get('excelFile');
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }catch(e){ return null; }
+}
+async function idbSetHandle(handle){
+  try{
+    const db = await idbOpen();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction('handles', 'readwrite');
+      tx.objectStore('handles').put(handle, 'excelFile');
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  }catch(e){ return false; }
+}
+async function idbClearHandle(){
+  try{
+    const db = await idbOpen();
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').delete('excelFile');
+  }catch(e){}
+}
+
+async function connectToExcelFile(){
+  try{
+    const [handle] = await window.showOpenFilePicker({
+      types: [{ description: 'Excel Workbook', accept: {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']} }]
+    });
+    const perm = await handle.requestPermission({mode:'readwrite'});
+    if(perm !== 'granted'){ showToast('Permission was not granted.'); return; }
+    fileHandle = handle;
+    await idbSetHandle(handle);
+    await loadFromExcelFile();
+    showToast('Connected to ' + connectedFileName + '.');
+  }catch(e){
+    if(e.name !== 'AbortError') showToast('Could not connect to that file.');
+  }
+}
+
+async function reconnectWithPermission(){
+  if(!fileHandle){ return connectToExcelFile(); }
+  try{
+    const perm = await fileHandle.requestPermission({mode:'readwrite'});
+    if(perm === 'granted'){
+      await loadFromExcelFile();
+      showToast('Reconnected to ' + connectedFileName + '.');
+    } else {
+      showToast('Permission was not granted.');
+    }
+  }catch(e){
+    showToast('Could not reconnect — try Connect again.');
+  }
+}
+
+async function disconnectExcelFile(){
+  fileHandle = null;
+  workbook = null;
+  fileConnected = false;
+  connectedFileName = '';
+  await idbClearHandle();
+  renderConnectionBanner();
+  showToast('Disconnected. Saving to this browser only.');
+}
+
+async function tryReconnectSilently(){
+  const handle = await idbGetHandle();
+  if(!handle) { renderConnectionBanner(); return; }
+  fileHandle = handle;
+  try{
+    const perm = await handle.queryPermission({mode:'readwrite'});
+    if(perm === 'granted'){
+      await loadFromExcelFile();
+      return;
+    }
+  }catch(e){}
+  // Permission needs a fresh user click — show the Reconnect button.
+  renderConnectionBanner();
+}
+
+async function loadFromExcelFile(){
+  const file = await fileHandle.getFile();
+  connectedFileName = file.name;
+  const buf = await file.arrayBuffer();
+  workbook = XLSX.read(buf, {type:'array'});
+
+  const empRows = XLSX.utils.sheet_to_json(workbook.Sheets['Employees'] || {}, {defval:''});
+  const courseRows = XLSX.utils.sheet_to_json(workbook.Sheets['Courses'] || {}, {defval:''});
+  const recordRows = XLSX.utils.sheet_to_json(workbook.Sheets['Records'] || {}, {defval:''});
+
+  const newEmployees = empRows.map(r => String(r.Employee || '').trim()).filter(Boolean);
+  const newCourses = courseRows.map(r => ({
+    id: String(r.CourseId || '').trim(),
+    name: String(r.CourseName || '').trim(),
+    max: Number(r.MaxScore) || 0,
+    updatedAt: 0
+  })).filter(c => c.id && c.name);
+
+  const nameToId = {};
+  newCourses.forEach(c => { nameToId[c.name.toLowerCase()] = c.id; });
+
+  const newRecords = {};
+  let skipped = 0;
+  recordRows.forEach(r => {
+    const emp = String(r.Employee || '').trim();
+    const courseName = String(r.Course || '').trim();
+    const courseId = nameToId[courseName.toLowerCase()];
+    if(!emp || !courseId){ skipped++; return; }
+    const key = recKey(emp, courseId);
+    const updatedAt = Number(r.UpdatedAt) || 0;
+    if(!newRecords[key] || updatedAt >= (newRecords[key].updatedAt || 0)){
+      const hadPriorFail = String(r.HadPriorFail || '').trim().toUpperCase() === 'TRUE';
+      newRecords[key] = { date: String(r.DateCompleted || ''), score: Number(r.Score) || 0, updatedAt, hadPriorFail };
+    }
+  });
+
+  EMPLOYEES = newEmployees.length ? newEmployees : EMPLOYEES;
+  COURSES = newCourses.length ? newCourses : COURSES;
+  records = newRecords;
+  fileConnected = true;
+
+  // Mirror into local storage as an offline safety-net cache (does not re-trigger a file write).
+  storageSet(EMPLOYEES_KEY, JSON.stringify(EMPLOYEES));
+  storageSet(COURSES_KEY, JSON.stringify(COURSES));
+  storageSet(RECORDS_KEY, JSON.stringify(records));
+
+  renderCourseFilterOptions();
+  renderAll();
+  if(skipped) showToast(`Loaded from file (${skipped} row(s) had an unrecognized course and were skipped).`);
+}
+
+async function writeWorkbookToFile(){
+  if(!fileConnected || !fileHandle || !workbook) return false;
+  try{
+    const empSheet = XLSX.utils.json_to_sheet(EMPLOYEES.map(e => ({Employee: e})));
+    workbook.Sheets['Employees'] = empSheet;
+    if(!workbook.SheetNames.includes('Employees')) workbook.SheetNames.push('Employees');
+
+    const courseSheet = XLSX.utils.json_to_sheet(COURSES.map(c => ({CourseId: c.id, CourseName: c.name, MaxScore: c.max})));
+    workbook.Sheets['Courses'] = courseSheet;
+    if(!workbook.SheetNames.includes('Courses')) workbook.SheetNames.push('Courses');
+
+    const recordRows = Object.keys(records).map(key => {
+      const [emp, courseId] = key.split('||');
+      const c = courseById(courseId);
+      const rec = records[key];
+      return {
+        Employee: emp,
+        Course: c ? c.name : courseId,
+        DateCompleted: rec.date,
+        Score: rec.score,
+        MaxScore: c ? c.max : '',
+        Status: c ? statusFor(rec.score, c.max) : '',
+        HadPriorFail: rec.hadPriorFail ? 'TRUE' : 'FALSE',
+        UpdatedAt: rec.updatedAt || Date.now()
+      };
+    });
+    const recordSheet = XLSX.utils.json_to_sheet(recordRows);
+    workbook.Sheets['Records'] = recordSheet;
+    if(!workbook.SheetNames.includes('Records')) workbook.SheetNames.push('Records');
+
+    const out = XLSX.write(workbook, {type:'array', bookType:'xlsx'});
+    const writable = await fileHandle.createWritable();
+    await writable.write(out);
+    await writable.close();
+    return true;
+  }catch(e){
+    showToast('Could not save to the Excel file — your data is still saved in this browser.');
+    return false;
+  }
+}
+
+function renderConnectionBanner(){
+  const el = document.getElementById('connectionBanner');
+  if(!FSA_SUPPORTED){
+    el.innerHTML = `<div class="conn-banner conn-unsupported">Direct Excel connection needs Chrome or Edge — this browser will keep saving to local storage. Use <strong>Backup ⇄</strong> to transfer data.</div>`;
+    return;
+  }
+  if(fileConnected){
+    el.innerHTML = `<div class="conn-banner conn-connected">✅ Connected to <strong>${escapeHtml(connectedFileName)}</strong> — every change saves straight to this file.
+      <button class="btn btn-ghost btn-sm" id="bannerDisconnect">Disconnect</button></div>`;
+    document.getElementById('bannerDisconnect').addEventListener('click', disconnectExcelFile);
+  } else if(fileHandle){
+    el.innerHTML = `<div class="conn-banner conn-disconnected">⚠️ Excel connection needs to be reconfirmed for this session.
+      <button class="btn btn-primary btn-sm" id="bannerReconnect">Reconnect</button></div>`;
+    document.getElementById('bannerReconnect').addEventListener('click', reconnectWithPermission);
+  } else {
+    el.innerHTML = `<div class="conn-banner conn-disconnected">📄 Not connected to your SharePoint Excel file — currently saving to this browser only.
+      <button class="btn btn-primary btn-sm" id="bannerConnect">Connect to Excel file</button></div>`;
+    document.getElementById('bannerConnect').addEventListener('click', connectToExcelFile);
+  }
+}
+
+function makeCourseId(name){
+  let base = name.split(/\s+/).filter(Boolean).map(w => w[0]).join('').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(!base) base = 'C';
+  let id = base, n = 1;
+  while(COURSES.some(c => c.id === id)){ n++; id = base + n; }
+  return id;
+}
+
+function renderStats(){
+  const total = EMPLOYEES.length;
+  const completions = Object.keys(records).length;
+  let passCount = 0;
+  Object.keys(records).forEach(k => {
+    const courseId = k.split('||')[1];
+    const c = courseById(courseId);
+    if(c && statusFor(records[k].score, c.max) === 'Pass') passCount++;
+  });
+  const passRate = completions ? Math.round((passCount/completions)*100) : 0;
+  const totalSlots = total * COURSES.length;
+  const overall = totalSlots ? Math.round((completions/totalSlots)*100) : 0;
+  document.getElementById('statEmployees').textContent = total;
+  document.getElementById('statCompletions').textContent = completions;
+  document.getElementById('statPassRate').textContent = passRate + '%';
+  document.getElementById('statOverall').textContent = overall + '%';
+}
+
+function renderMatrix(){
+  const table = document.getElementById('matrixTable');
+  let thead = '<thead><tr><th>Employee</th>' + COURSES.map(c => `<th title="${escapeHtml(c.name)}">${escapeHtml(c.id)}</th>`).join('') + '</tr></thead>';
+  let body = '<tbody>';
+  EMPLOYEES.forEach(emp => {
+    body += `<tr><td>${escapeHtml(emp)}</td>`;
+    COURSES.forEach(c => {
+      const rec = records[recKey(emp, c.id)];
+      if(rec){
+        const status = statusFor(rec.score, c.max);
+        const retry = status === 'Pass' && rec.hadPriorFail;
+        const cls = status === 'Pass' ? ('pill-pass' + (retry ? ' pill-pass-retry' : '')) : 'pill-fail';
+        const title = retry ? ' title="Passed after a previous failed attempt"' : '';
+        body += `<td class="cell" data-emp="${escapeHtml(emp)}" data-course="${c.id}">
+          <div class="pill ${cls}"${title}>
+            <span class="score">${rec.score}/${c.max}</span>
+            <span class="tag">${status}${retry ? ' <span class=\"retry-mark\">↻</span>' : ''}</span>
+          </div>
+        </td>`;
+      } else {
+        body += `<td class="cell" data-emp="${escapeHtml(emp)}" data-course="${c.id}">
+          <div class="pill-empty">+ Add</div>
+        </td>`;
+      }
+    });
+    body += '</tr>';
+  });
+  body += '</tbody>';
+  table.innerHTML = thead + body;
+  table.querySelectorAll('.cell').forEach(cell => {
+    cell.addEventListener('click', () => openModal(cell.dataset.emp, cell.dataset.course));
+  });
+}
+
+function renderCourseFilterOptions(){
+  const sel = document.getElementById('filterCourse');
+  sel.innerHTML = '<option value="">All courses</option>' + COURSES.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+}
+
+function renderRecordsTable(){
+  const search = document.getElementById('searchEmployee').value.trim().toLowerCase();
+  const courseFilter = document.getElementById('filterCourse').value;
+  const statusFilter = document.getElementById('filterStatus').value;
+
+  let rows = Object.keys(records).map(k => {
+    const [emp, courseId] = k.split('||');
+    const c = courseById(courseId);
+    const rec = records[k];
+    const status = c ? statusFor(rec.score, c.max) : '';
+    return { emp, courseId, courseName: c ? c.name : courseId, max: c ? c.max : 0, date: rec.date, score: rec.score, status, retry: status === 'Pass' && !!rec.hadPriorFail };
+  });
+
+  rows = rows.filter(r => {
+    if(search && !r.emp.toLowerCase().includes(search)) return false;
+    if(courseFilter && r.courseId !== courseFilter) return false;
+    if(statusFilter && r.status !== statusFilter) return false;
+    return true;
+  });
+
+  rows.sort((a,b) => a.emp.localeCompare(b.emp) || a.courseName.localeCompare(b.courseName));
+
+  const body = document.getElementById('recordsBody');
+  const empty = document.getElementById('emptyState');
+  if(rows.length === 0){
+    body.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  body.innerHTML = rows.map(r => `
+    <tr>
+      <td>${escapeHtml(r.emp)}</td>
+      <td>${escapeHtml(r.courseName)}</td>
+      <td>${r.date ? escapeHtml(r.date) : '—'}</td>
+      <td>${r.score}/${r.max}</td>
+      <td><span class="status-badge ${r.status==='Pass'?'status-pass':'status-fail'}${r.retry?' status-pass-retry':''}"${r.retry?' title="Passed after a previous failed attempt"':''}>${r.status}${r.retry?' <span class="retry-mark">↻</span>':''}</span></td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" data-action="edit" data-emp="${escapeHtml(r.emp)}" data-course="${r.courseId}">Edit</button>
+        <button class="btn-danger-text" data-action="delete" data-emp="${escapeHtml(r.emp)}" data-course="${r.courseId}">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+
+  body.querySelectorAll('[data-action="edit"]').forEach(b => b.addEventListener('click', () => openModal(b.dataset.emp, b.dataset.course)));
+  body.querySelectorAll('[data-action="delete"]').forEach(b => b.addEventListener('click', () => deleteRecord(b.dataset.emp, b.dataset.course)));
+}
+
+function renderAll(){
+  renderConnectionBanner();
+  renderStats();
+  renderMatrix();
+  renderRecordsTable();
+}
+
+async function deleteRecord(emp, courseId){
+  if(!confirm(`Remove the ${courseById(courseId).name} record for ${emp}? This can't be undone.`)) return;
+  delete records[recKey(emp, courseId)];
+  await saveRecords();
+  renderAll();
+  showToast('Record removed.');
+}
+
+/* ---------- Modal: add / edit completion ---------- */
+function openModal(presetEmp, presetCourse){
+  const existing = (presetEmp && presetCourse) ? records[recKey(presetEmp, presetCourse)] : null;
+  const root = document.getElementById('modalRoot');
+
+  const empOptions = EMPLOYEES.map(e => `<option value="${escapeHtml(e)}" ${e===presetEmp?'selected':''}>${escapeHtml(e)}</option>`).join('');
+  const courseOptions = COURSES.map(c => `<option value="${c.id}" ${c.id===presetCourse?'selected':''}>${escapeHtml(c.name)} (max ${c.max})</option>`).join('');
+  const today = new Date().toISOString().slice(0,10);
+
+  root.innerHTML = `
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal">
+        <h3>${existing ? 'Update completion' : 'Log a completion'}</h3>
+        <p class="modal-sub">Score and date determine pass/fail automatically (80% threshold).</p>
+        <div class="field">
+          <label>Employee</label>
+          <select id="mEmployee" ${presetEmp ? 'disabled' : ''}>${presetEmp ? `<option value="${escapeHtml(presetEmp)}" selected>${escapeHtml(presetEmp)}</option>` : '<option value="">Select employee…</option>' + empOptions}</select>
+        </div>
+        <div class="field">
+          <label>Course</label>
+          <select id="mCourse" ${presetCourse ? 'disabled' : ''}>${presetCourse ? `<option value="${presetCourse}" selected>${escapeHtml(courseById(presetCourse).name)} (max ${courseById(presetCourse).max})</option>` : '<option value="">Select course…</option>' + courseOptions}</select>
+        </div>
+        <div class="field">
+          <label>Date completed</label>
+          <input type="date" id="mDate" value="${existing ? existing.date : today}">
+        </div>
+        <div class="field">
+          <label>Score</label>
+          <input type="number" id="mScore" min="0" step="0.5" value="${existing ? existing.score : ''}" placeholder="e.g. 14">
+        </div>
+        <div class="score-preview" id="mPreview"></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" id="mCancel">Cancel</button>
+          <button class="btn btn-primary" id="mSave">${existing ? 'Save changes' : 'Log completion'}</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const empSel = document.getElementById('mEmployee');
+  const courseSel = document.getElementById('mCourse');
+  const scoreInput = document.getElementById('mScore');
+
+  function updatePreview(){
+    const cId = presetCourse || courseSel.value;
+    const c = courseById(cId);
+    const preview = document.getElementById('mPreview');
+    if(!c || scoreInput.value === ''){ preview.textContent = ''; return; }
+    const score = parseFloat(scoreInput.value);
+    if(isNaN(score)){ preview.textContent = ''; return; }
+    const status = statusFor(score, c.max);
+    preview.innerHTML = `${score}/${c.max} → <span class="status-badge ${status==='Pass'?'status-pass':'status-fail'}">${status}</span>`;
+  }
+  scoreInput.addEventListener('input', updatePreview);
+  courseSel.addEventListener('change', updatePreview);
+  updatePreview();
+
+  document.getElementById('mCancel').addEventListener('click', closeModal);
+  document.getElementById('modalOverlay').addEventListener('click', (e) => { if(e.target.id === 'modalOverlay') closeModal(); });
+
+  document.getElementById('mSave').addEventListener('click', async () => {
+    const emp = presetEmp || empSel.value;
+    const cId = presetCourse || courseSel.value;
+    const date = document.getElementById('mDate').value;
+    const score = parseFloat(scoreInput.value);
+    const c = courseById(cId);
+
+    if(!emp){ showToast('Please select an employee.'); return; }
+    if(!c){ showToast('Please select a course.'); return; }
+    if(!date){ showToast('Please add a completion date.'); return; }
+    if(isNaN(score) || score < 0 || score > c.max){ showToast(`Score must be between 0 and ${c.max}.`); return; }
+
+    const key = recKey(emp, cId);
+    const prior = records[key];
+    const priorWasFail = prior ? statusFor(prior.score, c.max) === 'Fail' : false;
+    const hadPriorFail = priorWasFail || (prior ? !!prior.hadPriorFail : false);
+
+    records[key] = { date, score, updatedAt: Date.now(), hadPriorFail };
+    await saveRecords();
+    closeModal();
+    renderAll();
+    showToast('Saved.');
+  });
+}
+function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
+
+/* ---------- Manage: employees & courses ---------- */
+let manageTab = 'employees';
+
+function openManageModal(){
+  manageTab = 'employees';
+  renderManageModal();
+}
+
+function renderManageModal(){
+  const root = document.getElementById('modalRoot');
+
+  const empRows = EMPLOYEES.length ? EMPLOYEES.map(emp => `
+    <div class="manage-row">
+      <input type="text" class="mg-emp-input" data-original="${escapeHtml(emp)}" value="${escapeHtml(emp)}">
+      <button class="btn-danger-text" data-action="removeEmp" data-emp="${escapeHtml(emp)}">Remove</button>
+    </div>
+  `).join('') : '<div class="manage-empty">No employees yet.</div>';
+
+  const courseRows = COURSES.length ? COURSES.map(c => `
+    <div class="manage-row">
+      <input type="text" class="mg-course-name" data-id="${c.id}" value="${escapeHtml(c.name)}">
+      <span class="max-label">max</span>
+      <input type="number" min="1" step="0.5" class="mg-course-max" data-id="${c.id}" value="${c.max}">
+      <button class="btn-danger-text" data-action="removeCourse" data-id="${c.id}">Remove</button>
+    </div>
+  `).join('') : '<div class="manage-empty">No courses yet.</div>';
+
+  root.innerHTML = `
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal modal-wide">
+        <h3>Manage employees &amp; courses</h3>
+        <p class="modal-sub">Changes save immediately and apply across the whole tracker.</p>
+        <div class="manage-tabs">
+          <button class="tab-btn ${manageTab==='employees'?'active':''}" data-tab="employees">Employees (${EMPLOYEES.length})</button>
+          <button class="tab-btn ${manageTab==='courses'?'active':''}" data-tab="courses">Courses (${COURSES.length})</button>
+        </div>
+
+        <div id="panelEmployees" style="display:${manageTab==='employees'?'block':'none'};">
+          <div class="manage-add-row">
+            <input type="text" id="newEmpInput" placeholder="New employee name">
+            <button class="btn btn-primary" id="addEmpBtn">Add</button>
+          </div>
+          <div class="manage-list">${empRows}</div>
+        </div>
+
+        <div id="panelCourses" style="display:${manageTab==='courses'?'block':'none'};">
+          <div class="manage-add-row">
+            <input type="text" id="newCourseName" placeholder="New course name">
+            <input type="number" id="newCourseMax" placeholder="Max" min="1" step="0.5">
+            <button class="btn btn-primary" id="addCourseBtn">Add</button>
+          </div>
+          <div class="manage-list">${courseRows}</div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-ghost" id="mgClose">Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('mgClose').addEventListener('click', closeModal);
+  document.getElementById('modalOverlay').addEventListener('click', (e) => { if(e.target.id === 'modalOverlay') closeModal(); });
+
+  root.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => { manageTab = btn.dataset.tab; renderManageModal(); });
+  });
+
+  document.getElementById('addEmpBtn').addEventListener('click', addEmployee);
+  document.getElementById('newEmpInput').addEventListener('keydown', e => { if(e.key === 'Enter') addEmployee(); });
+  document.getElementById('addCourseBtn').addEventListener('click', addCourse);
+
+  root.querySelectorAll('.mg-emp-input').forEach(input => {
+    input.addEventListener('keydown', e => { if(e.key === 'Enter') input.blur(); });
+    input.addEventListener('blur', () => renameEmployee(input.dataset.original, input.value));
+  });
+  root.querySelectorAll('[data-action="removeEmp"]').forEach(b => b.addEventListener('click', () => removeEmployee(b.dataset.emp)));
+
+  root.querySelectorAll('.mg-course-name').forEach(input => {
+    input.addEventListener('keydown', e => { if(e.key === 'Enter') input.blur(); });
+    input.addEventListener('blur', () => renameCourse(input.dataset.id, input.value));
+  });
+  root.querySelectorAll('.mg-course-max').forEach(input => {
+    input.addEventListener('keydown', e => { if(e.key === 'Enter') input.blur(); });
+    input.addEventListener('blur', () => updateCourseMax(input.dataset.id, input.value));
+  });
+  root.querySelectorAll('[data-action="removeCourse"]').forEach(b => b.addEventListener('click', () => removeCourse(b.dataset.id)));
+}
+
+async function addEmployee(){
+  const input = document.getElementById('newEmpInput');
+  const name = input.value.trim();
+  if(!name){ showToast('Enter a name first.'); return; }
+  if(EMPLOYEES.some(e => e.toLowerCase() === name.toLowerCase())){ showToast('That employee already exists.'); return; }
+  EMPLOYEES.push(name);
+  await saveEmployees();
+  renderManageModal();
+  renderAll();
+  showToast('Employee added.');
+}
+
+async function renameEmployee(oldName, newNameRaw){
+  const newName = newNameRaw.trim();
+  if(newName === oldName) return;
+  if(!newName){ renderManageModal(); showToast('Name can\'t be empty.'); return; }
+  if(EMPLOYEES.some(e => e !== oldName && e.toLowerCase() === newName.toLowerCase())){
+    renderManageModal();
+    showToast('Another employee already has that name.');
+    return;
+  }
+  const idx = EMPLOYEES.indexOf(oldName);
+  if(idx === -1) return;
+  EMPLOYEES[idx] = newName;
+  Object.keys(records).forEach(k => {
+    if(k.startsWith(oldName + '||')){
+      const courseId = k.split('||')[1];
+      records[recKey(newName, courseId)] = records[k];
+      delete records[k];
+    }
+  });
+  await Promise.all([saveEmployees(), saveRecords()]);
+  renderManageModal();
+  renderAll();
+  showToast('Employee renamed.');
+}
+
+async function removeEmployee(name){
+  const count = Object.keys(records).filter(k => k.startsWith(name + '||')).length;
+  const warn = count
+    ? `Remove ${name}? This will also delete ${count} completion record${count > 1 ? 's' : ''} for them. This can't be undone.`
+    : `Remove ${name}?`;
+  if(!confirm(warn)) return;
+  EMPLOYEES = EMPLOYEES.filter(e => e !== name);
+  Object.keys(records).forEach(k => { if(k.startsWith(name + '||')) delete records[k]; });
+  await Promise.all([saveEmployees(), saveRecords()]);
+  renderManageModal();
+  renderAll();
+  showToast('Employee removed.');
+}
+
+async function addCourse(){
+  const nameInput = document.getElementById('newCourseName');
+  const maxInput = document.getElementById('newCourseMax');
+  const name = nameInput.value.trim();
+  const max = parseFloat(maxInput.value);
+  if(!name){ showToast('Enter a course name.'); return; }
+  if(isNaN(max) || max <= 0){ showToast('Enter a max score greater than 0.'); return; }
+  if(COURSES.some(c => c.name.toLowerCase() === name.toLowerCase())){ showToast('That course already exists.'); return; }
+  const id = makeCourseId(name);
+  COURSES.push({ id, name, max, updatedAt: Date.now() });
+  await saveCourses();
+  renderCourseFilterOptions();
+  renderManageModal();
+  renderAll();
+  showToast('Course added.');
+}
+
+async function renameCourse(id, newNameRaw){
+  const newName = newNameRaw.trim();
+  const course = courseById(id);
+  if(!course || newName === course.name) return;
+  if(!newName){ renderManageModal(); showToast('Course name can\'t be empty.'); return; }
+  if(COURSES.some(c => c.id !== id && c.name.toLowerCase() === newName.toLowerCase())){
+    renderManageModal();
+    showToast('Another course already has that name.');
+    return;
+  }
+  course.name = newName;
+  course.updatedAt = Date.now();
+  await saveCourses();
+  renderCourseFilterOptions();
+  renderManageModal();
+  renderAll();
+  showToast('Course renamed.');
+}
+
+async function updateCourseMax(id, valueRaw){
+  const course = courseById(id);
+  if(!course) return;
+  const max = parseFloat(valueRaw);
+  if(isNaN(max) || max <= 0){
+    renderManageModal();
+    showToast('Max score must be greater than 0.');
+    return;
+  }
+  if(max === course.max) return;
+  course.max = max;
+  course.updatedAt = Date.now();
+  await saveCourses();
+  renderManageModal();
+  renderAll();
+  showToast('Max score updated — pass/fail recalculated.');
+}
+
+async function removeCourse(id){
+  const course = courseById(id);
+  if(!course) return;
+  const count = Object.keys(records).filter(k => k.endsWith('||' + id)).length;
+  const warn = count
+    ? `Remove ${course.name}? This will also delete ${count} completion record${count > 1 ? 's' : ''}. This can't be undone.`
+    : `Remove ${course.name}?`;
+  if(!confirm(warn)) return;
+  COURSES = COURSES.filter(c => c.id !== id);
+  Object.keys(records).forEach(k => { if(k.endsWith('||' + id)) delete records[k]; });
+  await Promise.all([saveCourses(), saveRecords()]);
+  renderCourseFilterOptions();
+  renderManageModal();
+  renderAll();
+  showToast('Course removed.');
+}
+
+/* ---------- Backup: cross-device JSON export/import with smart merge ---------- */
+function openBackupModal(){
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal">
+        <h3>Backup &amp; transfer data</h3>
+        <p class="modal-sub">Data is saved only in this browser. Use a backup file to move it to another device, or to combine entries from a colleague — newer edits win automatically when the same record exists in both.</p>
+        <div class="field">
+          <button class="btn btn-primary" id="bkDownload" style="width:100%;justify-content:center;">Download backup file</button>
+        </div>
+        <div class="field">
+          <label>Import a backup file</label>
+          <input type="file" id="bkFileInput" accept="application/json,.json">
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" id="bkClose">Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('bkClose').addEventListener('click', closeModal);
+  document.getElementById('modalOverlay').addEventListener('click', (e) => { if(e.target.id === 'modalOverlay') closeModal(); });
+  document.getElementById('bkDownload').addEventListener('click', downloadBackup);
+  document.getElementById('bkFileInput').addEventListener('change', handleBackupFile);
+}
+
+function downloadBackup(){
+  const payload = {
+    type: 'training-tracker-backup',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    employees: EMPLOYEES,
+    courses: COURSES,
+    records: records
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `training-tracker-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Backup downloaded.');
+}
+
+function handleBackupFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    let data;
+    try{
+      data = JSON.parse(reader.result);
+    }catch(err){
+      showToast('That file isn\'t valid JSON.');
+      return;
+    }
+    if(!data || data.type !== 'training-tracker-backup' || !data.employees || !data.courses || !data.records){
+      showToast('That doesn\'t look like a training tracker backup file.');
+      return;
+    }
+    const summary = mergeBackup(data);
+    await Promise.all([saveEmployees(), saveCourses(), saveRecords()]);
+    renderCourseFilterOptions();
+    closeModal();
+    renderAll();
+    showToast(`Merged: ${summary.newEmployees} new employee(s), ${summary.newCourses} new course(s), ${summary.newRecords} new record(s), ${summary.updatedRecords} updated.`);
+  };
+  reader.readAsText(file);
+}
+
+function mergeBackup(data){
+  const summary = { newEmployees:0, newCourses:0, newRecords:0, updatedRecords:0 };
+
+  // Employees: union, case-insensitive de-dupe
+  const existingLower = EMPLOYEES.map(e => e.toLowerCase());
+  (data.employees || []).forEach(name => {
+    if(!existingLower.includes(String(name).toLowerCase())){
+      EMPLOYEES.push(name);
+      existingLower.push(String(name).toLowerCase());
+      summary.newEmployees++;
+    }
+  });
+
+  // Courses: merge by id, newer updatedAt wins on conflict
+  (data.courses || []).forEach(incoming => {
+    const local = courseById(incoming.id);
+    if(!local){
+      COURSES.push(incoming);
+      summary.newCourses++;
+    } else {
+      const incomingTime = incoming.updatedAt || 0;
+      const localTime = local.updatedAt || 0;
+      if(incomingTime > localTime){
+        local.name = incoming.name;
+        local.max = incoming.max;
+        local.updatedAt = incomingTime;
+      }
+    }
+  });
+
+  // Records: merge by key, newer updatedAt wins on conflict
+  Object.keys(data.records || {}).forEach(key => {
+    const incoming = data.records[key];
+    const local = records[key];
+    if(!local){
+      records[key] = incoming;
+      summary.newRecords++;
+    } else {
+      const incomingTime = incoming.updatedAt || 0;
+      const localTime = local.updatedAt || 0;
+      if(incomingTime > localTime){
+        records[key] = incoming;
+        summary.updatedRecords++;
+      }
+    }
+  });
+
+  return summary;
+}
+
+/* ---------- Export ---------- */
+function openExportModal(){
+  const root = document.getElementById('modalRoot');
+  const empOptions = EMPLOYEES.map(e => `<option value="${escapeHtml(e)}">${escapeHtml(e)}</option>`).join('');
+  root.innerHTML = `
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal">
+        <h3>Export progress</h3>
+        <p class="modal-sub">Downloads a CSV covering every course, including ones not yet started.</p>
+        <div class="field">
+          <label>Scope</label>
+          <select id="eScope">
+            <option value="all">All employees</option>
+            <option value="one">One employee</option>
+          </select>
+        </div>
+        <div class="field" id="eEmployeeField" style="display:none;">
+          <label>Employee</label>
+          <select id="eEmployee">${empOptions}</select>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" id="eCancel">Cancel</button>
+          <button class="btn btn-primary" id="eDownload">Download CSV</button>
+        </div>
+      </div>
+    </div>
+  `;
+  const scopeSel = document.getElementById('eScope');
+  scopeSel.addEventListener('change', () => {
+    document.getElementById('eEmployeeField').style.display = scopeSel.value === 'one' ? 'block' : 'none';
+  });
+  document.getElementById('eCancel').addEventListener('click', closeModal);
+  document.getElementById('modalOverlay').addEventListener('click', (e) => { if(e.target.id === 'modalOverlay') closeModal(); });
+  document.getElementById('eDownload').addEventListener('click', () => {
+    const scope = scopeSel.value;
+    const employee = scope === 'one' ? document.getElementById('eEmployee').value : null;
+    downloadCsv(employee);
+    closeModal();
+  });
+}
+
+function downloadCsv(singleEmployee){
+  const employees = singleEmployee ? [singleEmployee] : EMPLOYEES;
+  const rows = [['Employee','Course','Date Completed','Score','Max Score','Status','Passed After Retry']];
+  employees.forEach(emp => {
+    COURSES.forEach(c => {
+      const rec = records[recKey(emp, c.id)];
+      if(rec){
+        const status = statusFor(rec.score, c.max);
+        const retry = status === 'Pass' && rec.hadPriorFail ? 'Yes' : '';
+        rows.push([emp, c.name, rec.date, rec.score, c.max, status, retry]);
+      } else {
+        rows.push([emp, c.name, '', '', c.max, 'Not Started', '']);
+      }
+    });
+  });
+  const csv = rows.map(r => r.map(field => {
+    const s = String(field);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  }).join(',')).join('\n');
+
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = singleEmployee
+    ? `training-progress-${singleEmployee.replace(/\s+/g,'-')}-${dateStr}.csv`
+    : `training-progress-all-employees-${dateStr}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Export downloaded.');
+}
+
+/* ---------- Clear all ---------- */
+async function clearAll(){
+  if(!confirm('This will permanently delete every logged completion. Continue?')) return;
+  if(!confirm('Are you absolutely sure? This cannot be undone.')) return;
+  records = {};
+  await saveRecords();
+  renderAll();
+  showToast('All data cleared.');
+}
+
+/* ---------- Init ---------- */
+async function init(){
+  await Promise.all([loadEmployees(), loadCourses()]);
+  renderCourseFilterOptions();
+  await loadRecords();
+  renderAll();
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  document.getElementById('openAdd').addEventListener('click', () => openModal(null, null));
+  document.getElementById('openExport').addEventListener('click', openExportModal);
+  document.getElementById('openManage').addEventListener('click', openManageModal);
+  document.getElementById('openBackup').addEventListener('click', openBackupModal);
+  document.getElementById('clearAllBtn').addEventListener('click', clearAll);
+  document.getElementById('searchEmployee').addEventListener('input', renderRecordsTable);
+  document.getElementById('filterCourse').addEventListener('change', renderRecordsTable);
+  document.getElementById('filterStatus').addEventListener('change', renderRecordsTable);
+
+  await tryReconnectSilently(); // overrides local data with the file's data if already authorized
+}
+init();
+</script>
+</body>
+</html>
