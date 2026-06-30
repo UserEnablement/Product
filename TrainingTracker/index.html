@@ -210,6 +210,25 @@
   .spinner{width:28px;height:28px;border-radius:50%;border:3px solid var(--gray-300);border-top-color:var(--navy-700);animation:spin 0.8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
+  /* Column controls */
+  .col-controls-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:32px;}
+  .col-chip{
+    display:inline-flex;align-items:center;gap:4px;
+    background:var(--navy-900);color:white;
+    border-radius:6px;padding:4px 8px;font-size:.74rem;font-weight:600;
+    cursor:grab;user-select:none;transition:opacity .15s;
+  }
+  .col-chip-hidden{background:var(--gray-300);color:var(--gray-700);}
+  .col-chip-dragging{opacity:.4;}
+  .col-chip-over{outline:2px solid var(--teal-400);}
+  .col-chip-drag{font-size:.78rem;opacity:.6;cursor:grab;}
+  .col-chip-label{letter-spacing:.02em;}
+  .col-chip-eye{
+    background:none;border:none;color:inherit;cursor:pointer;
+    padding:0 2px;font-size:.78rem;line-height:1;opacity:.8;
+  }
+  .col-chip-eye:hover{opacity:1;}
+
   footer{text-align:center;font-size:.74rem;color:var(--gray-500);margin-top:6px;}
   footer button{background:none;border:none;color:var(--gray-500);text-decoration:underline;cursor:pointer;font-size:.74rem;}
 
@@ -267,10 +286,11 @@
     <div class="card-head">
       <div>
         <h2>Completion matrix</h2>
-        <p>Click any cell to log or update a score. Teal = pass, magenta = fail, dashed = not started.</p>
+        <p>Click any cell to log or update a score. Teal = pass, magenta = fail, dashed = not started. Drag chips below to reorder columns; click ● to hide/show.</p>
       </div>
     </div>
     <div class="card-body">
+      <div id="colControlsRow" class="col-controls-row"></div>
       <div class="matrix-scroll">
         <table class="matrix" id="matrixTable"></table>
       </div>
@@ -334,7 +354,7 @@ const DEFAULT_COURSES = [
   {id:'PPA', name:'OLLIE PPA Fundamentals',             max:10},
 ];
 
-const DEFAULT_EMPLOYEES = ["Agnes Lech","Alejandra Kafie","Andre Fernandes Dias","Andrew MacLean","Aroldo Goulart","Augusto Consani","Bhumika Bhardwaj","Carlos Alberto Ventura Junior","Charlon Ignacio","Chris Lin","Cleomar Kerber","Corwyn Amendt","Daniel Talash","Dinesh Reddy Medipally","Elena Tikhonova","Fabio Pan","Gerald Cole","Graem Clark","Gregory Pereira","Harneet Deol","Hsin Chieh (Alice) Chien","Jagpreet Sidhu (Johal)","Jason Ho","Jerry Zhu","Kaue Castellani","Krishna Alloori","Lara Bell","Luciana Gomes Ferraz Fernandes Dias","Luis Ernandes","Marcelo Akira","Marcos Martini","Marie Inacio","Mohamed Al-Magdod","Nicole Calderon","Nychollas Della Monica","Odiong Eneh","Pamela Naval","Phillip Price","Rafael Trevisan","Ramana Guduru","Rao Thudi","Riyaad Ammantoola","Rodrigo Paris","Saziya Newton Mahida","Sharmila Gajendran","Siri Sagi","Soliat Yahaya","Sri Raga Madhuri Velpula","Tiago Steil","Torsten Lenk","Viktor Pak","Vinicius Florencio","Vinicius Rutsatz"];
+const DEFAULT_EMPLOYEES = ["Agnes Lech","Alejandra Kafie","Andre Fernandes Dias","Andrew MacLean","Aroldo Goulart","Augusto Consani","Bhumika Bhardwaj","Carlos Alberto Ventura Junior","Charlon Ignacio","Chris Lin","Cleomar Kerber","Corwyn Amendt","Daniel Talash","Dinesh Reddy Medipally","Elena Tikhonova","Fabio Pan","Gerald Cole","Graem Clark","Grace Odeh","Gregory Pereira","Harneet Deol","Hsin Chieh (Alice) Chien","Jagpreet Sidhu (Johal)","Jason Ho","Jerry Zhu","Kaue Castellani","Krishna Alloori","Lara Bell","Luciana Gomes Ferraz Fernandes Dias","Luis Ernandes","Marcelo Akira","Marcos Martini","Marie Inacio","Mohamed Al-Magdod","Nicole Calderon","Nychollas Della Monica","Odiong Eneh","Pamela Naval","Phillip Price","Rafael Trevisan","Ramana Guduru","Rao Thudi","Riyaad Ammantoola","Rodrigo Paris","Saziya Newton Mahida","Sharmila Gajendran","Siri Sagi","Soliat Yahaya","Sri Raga Madhuri Velpula","Tiago Steil","Torsten Lenk","Viktor Pak","Vinicius Florencio","Vinicius Rutsatz"];
 
 let COURSES = [];
 let EMPLOYEES = [];
@@ -343,6 +363,22 @@ const RECORDS_KEY = 'training_records';
 const COURSES_KEY = 'training_courses';
 const EMPLOYEES_KEY = 'training_employees';
 let records = {}; // key: `${employee}||${courseId}` -> {date, score}
+
+// Column visibility & order state (parallel to COURSES array by id)
+let colOrder = [];   // array of course ids in display order
+let colHidden = {};  // { courseId: true } for hidden cols
+
+function syncColState(){
+  // Add any new courses not yet in colOrder
+  COURSES.forEach(c => { if(!colOrder.includes(c.id)) colOrder.push(c.id); });
+  // Remove any ids that no longer exist
+  colOrder = colOrder.filter(id => COURSES.some(c => c.id === id));
+}
+
+function visibleCourses(){
+  syncColState();
+  return colOrder.map(id => COURSES.find(c => c.id === id)).filter(c => c && !colHidden[c.id]);
+}
 
 function courseById(id){ return COURSES.find(c => c.id === id); }
 function recKey(emp, courseId){ return emp + '||' + courseId; }
@@ -650,11 +686,12 @@ function renderStats(){
 
 function renderMatrix(){
   const table = document.getElementById('matrixTable');
-  let thead = '<thead><tr><th>Employee</th>' + COURSES.map(c => `<th title="${escapeHtml(c.name)}">${escapeHtml(c.id)}</th>`).join('') + '</tr></thead>';
+  const vis = visibleCourses();
+  let thead = '<thead><tr><th>Employee</th>' + vis.map(c => `<th title="${escapeHtml(c.name)}">${escapeHtml(c.id)}</th>`).join('') + '</tr></thead>';
   let body = '<tbody>';
   EMPLOYEES.forEach(emp => {
     body += `<tr><td>${escapeHtml(emp)}</td>`;
-    COURSES.forEach(c => {
+    vis.forEach(c => {
       const rec = records[recKey(emp, c.id)];
       if(rec){
         const status = statusFor(rec.score, c.max);
@@ -679,6 +716,61 @@ function renderMatrix(){
   table.innerHTML = thead + body;
   table.querySelectorAll('.cell').forEach(cell => {
     cell.addEventListener('click', () => openModal(cell.dataset.emp, cell.dataset.course));
+  });
+  renderColControls();
+}
+
+function renderColControls(){
+  const container = document.getElementById('colControlsRow');
+  if(!container) return;
+  syncColState();
+  container.innerHTML = colOrder.map(id => {
+    const c = COURSES.find(x => x.id === id);
+    if(!c) return '';
+    const hidden = !!colHidden[id];
+    return `<span class="col-chip ${hidden ? 'col-chip-hidden' : ''}" data-id="${c.id}" title="${escapeHtml(c.name)}">
+      <span class="col-chip-drag" title="Drag to reorder">⠿</span>
+      <span class="col-chip-label">${escapeHtml(c.id)}</span>
+      <button class="col-chip-eye" data-id="${c.id}" title="${hidden ? 'Show column' : 'Hide column'}">${hidden ? '○' : '●'}</button>
+    </span>`;
+  }).join('');
+
+  // Toggle visibility
+  container.querySelectorAll('.col-chip-eye').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      colHidden[id] = !colHidden[id];
+      renderMatrix();
+    });
+  });
+
+  // Drag-to-reorder
+  let dragging = null;
+  container.querySelectorAll('.col-chip').forEach(chip => {
+    chip.setAttribute('draggable', 'true');
+    chip.addEventListener('dragstart', e => {
+      dragging = chip.dataset.id;
+      chip.classList.add('col-chip-dragging');
+    });
+    chip.addEventListener('dragend', () => {
+      chip.classList.remove('col-chip-dragging');
+      dragging = null;
+    });
+    chip.addEventListener('dragover', e => { e.preventDefault(); chip.classList.add('col-chip-over'); });
+    chip.addEventListener('dragleave', () => chip.classList.remove('col-chip-over'));
+    chip.addEventListener('drop', e => {
+      e.preventDefault();
+      chip.classList.remove('col-chip-over');
+      const dropId = chip.dataset.id;
+      if(dragging && dragging !== dropId){
+        const fromIdx = colOrder.indexOf(dragging);
+        const toIdx = colOrder.indexOf(dropId);
+        colOrder.splice(fromIdx, 1);
+        colOrder.splice(toIdx, 0, dragging);
+        renderMatrix();
+      }
+    });
   });
 }
 
