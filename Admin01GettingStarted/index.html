@@ -699,7 +699,7 @@ function toggleNarr() {
     btn.style.color = narrEnabled ? '' : 'var(--gr5)';
   }
   if (!narrEnabled) { stopNarr(); }
-  else if (mode === 'guided') { playNarr(); }
+  else { playNarr(); }
 }
 function playNarr() {
   if (!narrEnabled) return;
@@ -945,7 +945,7 @@ function render(sid) {
       continueBtn +
     '</div>';
 
-  if (mode === 'guided' && scene.audio && AUDIO[scene.audio]) {
+  if (scene.audio && AUDIO[scene.audio]) {
     setTimeout(function(){ playNarr(); }, 400);
   }
 }
