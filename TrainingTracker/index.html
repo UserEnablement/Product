@@ -229,6 +229,10 @@
   }
   .col-chip-eye:hover{opacity:1;}
 
+  .col-legend-row{display:flex;flex-wrap:wrap;gap:14px;margin:-2px 0 10px;min-height:16px;}
+  .legend-chip{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;color:var(--gray-700);}
+  .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
   footer{text-align:center;font-size:.74rem;color:var(--gray-500);margin-top:6px;}
   footer button{background:none;border:none;color:var(--gray-500);text-decoration:underline;cursor:pointer;font-size:.74rem;}
 
@@ -246,6 +250,20 @@
     .stats{grid-template-columns:repeat(2,1fr);}
     .form-grid{grid-template-columns:1fr 1fr;}
   }
+
+  /* Category tabs */
+  .category-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+  .cat-chip{
+    font-family:'Inter',sans-serif;font-weight:600;font-size:.82rem;
+    padding:8px 16px;border-radius:20px;border:1px solid var(--gray-300);
+    background:white;color:var(--gray-700);cursor:pointer;transition:all .12s ease;
+  }
+  .cat-chip:hover{border-color:var(--navy-500);color:var(--navy-700);}
+  .cat-chip.active{background:var(--navy-700);color:white;border-color:var(--navy-700);}
+
+  /* Category select inside manage rows */
+  .mg-course-category{width:190px;flex-shrink:0;}
+  .manage-add-row select{width:190px;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -275,6 +293,8 @@
 
   <div id="connectionBanner"></div>
 
+  <div class="category-tabs" id="categoryTabs"></div>
+
   <div class="stats">
     <div class="stat-card"><div class="stat-num" id="statEmployees">0</div><div class="stat-label">Employees tracked</div></div>
     <div class="stat-card"><div class="stat-num" id="statCompletions">0</div><div class="stat-label">Completions logged</div></div>
@@ -291,6 +311,7 @@
     </div>
     <div class="card-body">
       <div id="colControlsRow" class="col-controls-row"></div>
+      <div id="colLegendRow" class="col-legend-row"></div>
       <div class="matrix-scroll">
         <table class="matrix" id="matrixTable"></table>
       </div>
@@ -327,7 +348,7 @@
         <table class="records" id="recordsTable">
           <thead>
             <tr>
-              <th>Employee</th><th>Course</th><th>Date completed</th><th>Score</th><th>Status</th><th></th>
+              <th>Employee</th><th>Category</th><th>Course</th><th>Date completed</th><th>Score</th><th>Status</th><th></th>
             </tr>
           </thead>
           <tbody id="recordsBody"></tbody>
@@ -346,22 +367,28 @@
 <div class="toast" id="toast"></div>
 
 <script>
+const DEFAULT_CATEGORIES = ['Oliver Product Foundation', 'Industry Knowledge'];
+
 const DEFAULT_COURSES = [
-  {id:'OF',  name:'Oliver Foundations',               max:16},
-  {id:'AF',  name:'Admin Fundamentals',                max:9},
-  {id:'MF',  name:'Multiplan Fundamentals',            max:10},
-  {id:'GH',  name:'Oliver GroupHealth Fundamentals',   max:10},
-  {id:'PPA', name:'OLLIE PPA Fundamentals',             max:10},
+  {id:'OF',  name:'Oliver Foundations',               max:16, category:'Oliver Product Foundation'},
+  {id:'AF',  name:'Admin Fundamentals',                max:9,  category:'Oliver Product Foundation'},
+  {id:'MF',  name:'Multiplan Fundamentals',            max:10, category:'Oliver Product Foundation'},
+  {id:'GH',  name:'Oliver GroupHealth Fundamentals',   max:10, category:'Oliver Product Foundation'},
+  {id:'PPA', name:'OLLIE PPA Fundamentals',             max:10, category:'Oliver Product Foundation'},
+  {id:'PF',  name:'Pension Foundation',                 max:10, category:'Industry Knowledge'},
 ];
 
 const DEFAULT_EMPLOYEES = ["Agnes Lech","Alejandra Kafie","Andre Fernandes Dias","Andrew MacLean","Aroldo Goulart","Augusto Consani","Bhumika Bhardwaj","Carlos Alberto Ventura Junior","Charlon Ignacio","Chris Lin","Cleomar Kerber","Corwyn Amendt","Daniel Talash","Dinesh Reddy Medipally","Elena Tikhonova","Fabio Pan","Gerald Cole","Graem Clark","Grace Odeh","Gregory Pereira","Harneet Deol","Hsin Chieh (Alice) Chien","Jagpreet Sidhu (Johal)","Jason Ho","Jerry Zhu","Kaue Castellani","Krishna Alloori","Lara Bell","Luciana Gomes Ferraz Fernandes Dias","Luis Ernandes","Marcelo Akira","Marcos Martini","Marie Inacio","Mohamed Al-Magdod","Nicole Calderon","Nychollas Della Monica","Odiong Eneh","Pamela Naval","Phillip Price","Rafael Trevisan","Ramana Guduru","Rao Thudi","Riyaad Ammantoola","Rodrigo Paris","Saziya Newton Mahida","Sharmila Gajendran","Siri Sagi","Soliat Yahaya","Sri Raga Madhuri Velpula","Tiago Steil","Torsten Lenk","Viktor Pak","Vinicius Florencio","Vinicius Rutsatz"];
 
 let COURSES = [];
 let EMPLOYEES = [];
+let CATEGORIES = [];
+let activeCategory = ''; // '' = All courses
 
 const RECORDS_KEY = 'training_records';
 const COURSES_KEY = 'training_courses';
 const EMPLOYEES_KEY = 'training_employees';
+const CATEGORIES_KEY = 'training_categories';
 let records = {}; // key: `${employee}||${courseId}` -> {date, score}
 
 // Column visibility & order state (parallel to COURSES array by id)
@@ -377,7 +404,31 @@ function syncColState(){
 
 function visibleCourses(){
   syncColState();
-  return colOrder.map(id => COURSES.find(c => c.id === id)).filter(c => c && !colHidden[c.id]);
+  return colOrder.map(id => COURSES.find(c => c.id === id))
+    .filter(c => c && !colHidden[c.id])
+    .filter(c => activeCategory === '' || c.category === activeCategory);
+}
+
+function scopedCourses(){
+  return activeCategory === '' ? COURSES : COURSES.filter(c => c.category === activeCategory);
+}
+
+const CATEGORY_PALETTE = ['#256C58', '#1A4C77', '#8A5A1E', '#3273AC', '#454145', '#77592B'];
+function categoryColor(category){
+  if(!category) return '#696267';
+  const idx = CATEGORIES.indexOf(category);
+  return CATEGORY_PALETTE[(idx < 0 ? 0 : idx) % CATEGORY_PALETTE.length];
+}
+
+function reconcileCategories(){
+  let changed = false;
+  COURSES.forEach(c => {
+    if(c.category && !CATEGORIES.includes(c.category)){
+      CATEGORIES.push(c.category);
+      changed = true;
+    }
+  });
+  return changed;
 }
 
 function courseById(id){ return COURSES.find(c => c.id === id); }
@@ -425,9 +476,27 @@ async function loadCourses(){
     COURSES = JSON.parse(JSON.stringify(DEFAULT_COURSES)).map(c => ({...c, updatedAt: 0}));
     await saveCourses();
   }
+  // Migration: older saved data may not have a category yet
+  let migrated = false;
+  COURSES.forEach(c => { if(!c.category){ c.category = 'Oliver Product Foundation'; migrated = true; } });
+  if(migrated) await saveCourses();
 }
 async function saveCourses(){
   storageSet(COURSES_KEY, JSON.stringify(COURSES));
+  if(fileConnected) await writeWorkbookToFile();
+}
+
+async function loadCategories(){
+  const v = storageGet(CATEGORIES_KEY);
+  CATEGORIES = v ? JSON.parse(v) : null;
+  if(!CATEGORIES){
+    CATEGORIES = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+    await saveCategories();
+  }
+  if(reconcileCategories()) await saveCategories();
+}
+async function saveCategories(){
+  storageSet(CATEGORIES_KEY, JSON.stringify(CATEGORIES));
   if(fileConnected) await writeWorkbookToFile();
 }
 
@@ -553,6 +622,7 @@ async function loadFromExcelFile(){
 
   const empRows = XLSX.utils.sheet_to_json(workbook.Sheets['Employees'] || {}, {defval:''});
   const courseRows = XLSX.utils.sheet_to_json(workbook.Sheets['Courses'] || {}, {defval:''});
+  const categoryRows = XLSX.utils.sheet_to_json(workbook.Sheets['Categories'] || {}, {defval:''});
   const recordRows = XLSX.utils.sheet_to_json(workbook.Sheets['Records'] || {}, {defval:''});
 
   const newEmployees = empRows.map(r => String(r.Employee || '').trim()).filter(Boolean);
@@ -560,8 +630,10 @@ async function loadFromExcelFile(){
     id: String(r.CourseId || '').trim(),
     name: String(r.CourseName || '').trim(),
     max: Number(r.MaxScore) || 0,
+    category: String(r.CourseCategory || '').trim() || 'Oliver Product Foundation',
     updatedAt: 0
   })).filter(c => c.id && c.name);
+  const newCategories = categoryRows.map(r => String(r.CategoryName || '').trim()).filter(Boolean);
 
   const nameToId = {};
   newCourses.forEach(c => { nameToId[c.name.toLowerCase()] = c.id; });
@@ -583,12 +655,15 @@ async function loadFromExcelFile(){
 
   EMPLOYEES = newEmployees.length ? newEmployees : EMPLOYEES;
   COURSES = newCourses.length ? newCourses : COURSES;
+  CATEGORIES = newCategories.length ? newCategories : CATEGORIES;
   records = newRecords;
   fileConnected = true;
+  reconcileCategories();
 
   // Mirror into local storage as an offline safety-net cache (does not re-trigger a file write).
   storageSet(EMPLOYEES_KEY, JSON.stringify(EMPLOYEES));
   storageSet(COURSES_KEY, JSON.stringify(COURSES));
+  storageSet(CATEGORIES_KEY, JSON.stringify(CATEGORIES));
   storageSet(RECORDS_KEY, JSON.stringify(records));
 
   renderCourseFilterOptions();
@@ -603,9 +678,13 @@ async function writeWorkbookToFile(){
     workbook.Sheets['Employees'] = empSheet;
     if(!workbook.SheetNames.includes('Employees')) workbook.SheetNames.push('Employees');
 
-    const courseSheet = XLSX.utils.json_to_sheet(COURSES.map(c => ({CourseId: c.id, CourseName: c.name, MaxScore: c.max})));
+    const courseSheet = XLSX.utils.json_to_sheet(COURSES.map(c => ({CourseId: c.id, CourseName: c.name, MaxScore: c.max, CourseCategory: c.category || ''})));
     workbook.Sheets['Courses'] = courseSheet;
     if(!workbook.SheetNames.includes('Courses')) workbook.SheetNames.push('Courses');
+
+    const categorySheet = XLSX.utils.json_to_sheet(CATEGORIES.map(cat => ({CategoryName: cat})));
+    workbook.Sheets['Categories'] = categorySheet;
+    if(!workbook.SheetNames.includes('Categories')) workbook.SheetNames.push('Categories');
 
     const recordRows = Object.keys(records).map(key => {
       const [emp, courseId] = key.split('||');
@@ -668,15 +747,18 @@ function makeCourseId(name){
 
 function renderStats(){
   const total = EMPLOYEES.length;
-  const completions = Object.keys(records).length;
+  const scoped = scopedCourses();
+  const scopedIds = new Set(scoped.map(c => c.id));
+  const scopedKeys = Object.keys(records).filter(k => scopedIds.has(k.split('||')[1]));
+  const completions = scopedKeys.length;
   let passCount = 0;
-  Object.keys(records).forEach(k => {
+  scopedKeys.forEach(k => {
     const courseId = k.split('||')[1];
     const c = courseById(courseId);
     if(c && statusFor(records[k].score, c.max) === 'Pass') passCount++;
   });
   const passRate = completions ? Math.round((passCount/completions)*100) : 0;
-  const totalSlots = total * COURSES.length;
+  const totalSlots = total * scoped.length;
   const overall = totalSlots ? Math.round((completions/totalSlots)*100) : 0;
   document.getElementById('statEmployees').textContent = total;
   document.getElementById('statCompletions').textContent = completions;
@@ -724,16 +806,30 @@ function renderColControls(){
   const container = document.getElementById('colControlsRow');
   if(!container) return;
   syncColState();
-  container.innerHTML = colOrder.map(id => {
+  const relevantIds = colOrder.filter(id => {
+    const c = COURSES.find(x => x.id === id);
+    return c && (activeCategory === '' || c.category === activeCategory);
+  });
+  container.innerHTML = relevantIds.map(id => {
     const c = COURSES.find(x => x.id === id);
     if(!c) return '';
     const hidden = !!colHidden[id];
-    return `<span class="col-chip ${hidden ? 'col-chip-hidden' : ''}" data-id="${c.id}" title="${escapeHtml(c.name)}">
+    const bg = hidden ? '' : `style="background:${categoryColor(c.category)};"`;
+    return `<span class="col-chip ${hidden ? 'col-chip-hidden' : ''}" ${bg} data-id="${c.id}" title="${escapeHtml(c.name)} — ${escapeHtml(c.category || 'Uncategorized')}">
       <span class="col-chip-drag" title="Drag to reorder">⠿</span>
       <span class="col-chip-label">${escapeHtml(c.id)}</span>
       <button class="col-chip-eye" data-id="${c.id}" title="${hidden ? 'Show column' : 'Hide column'}">${hidden ? '○' : '●'}</button>
     </span>`;
   }).join('');
+
+  // Legend (only worth showing when the matrix spans more than one category)
+  const legendEl = document.getElementById('colLegendRow');
+  if(legendEl){
+    const catsShown = [...new Set(relevantIds.map(id => { const c = COURSES.find(x => x.id === id); return c ? c.category : null; }).filter(Boolean))];
+    legendEl.innerHTML = catsShown.length > 1
+      ? catsShown.map(cat => `<span class="legend-chip"><span class="legend-dot" style="background:${categoryColor(cat)};"></span>${escapeHtml(cat)}</span>`).join('')
+      : '';
+  }
 
   // Toggle visibility
   container.querySelectorAll('.col-chip-eye').forEach(btn => {
@@ -776,7 +872,25 @@ function renderColControls(){
 
 function renderCourseFilterOptions(){
   const sel = document.getElementById('filterCourse');
-  sel.innerHTML = '<option value="">All courses</option>' + COURSES.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  const scoped = scopedCourses();
+  const prevVal = sel.value;
+  sel.innerHTML = '<option value="">All courses</option>' + scoped.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  sel.value = scoped.some(c => c.id === prevVal) ? prevVal : '';
+}
+
+function renderCategoryTabs(){
+  const container = document.getElementById('categoryTabs');
+  if(!container) return;
+  const chips = [`<button class="cat-chip ${activeCategory === '' ? 'active' : ''}" data-cat="">All courses</button>`]
+    .concat(CATEGORIES.map(cat => `<button class="cat-chip ${activeCategory === cat ? 'active' : ''}" data-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`));
+  container.innerHTML = chips.join('');
+  container.querySelectorAll('.cat-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(activeCategory === btn.dataset.cat) return;
+      activeCategory = btn.dataset.cat;
+      renderAll();
+    });
+  });
 }
 
 function renderRecordsTable(){
@@ -789,11 +903,12 @@ function renderRecordsTable(){
     const c = courseById(courseId);
     const rec = records[k];
     const status = c ? statusFor(rec.score, c.max) : '';
-    return { emp, courseId, courseName: c ? c.name : courseId, max: c ? c.max : 0, date: rec.date, score: rec.score, status, retry: status === 'Pass' && !!rec.hadPriorFail };
+    return { emp, courseId, courseName: c ? c.name : courseId, category: c ? c.category : '', max: c ? c.max : 0, date: rec.date, score: rec.score, status, retry: status === 'Pass' && !!rec.hadPriorFail };
   });
 
   rows = rows.filter(r => {
     if(search && !r.emp.toLowerCase().includes(search)) return false;
+    if(activeCategory && r.category !== activeCategory) return false;
     if(courseFilter && r.courseId !== courseFilter) return false;
     if(statusFilter && r.status !== statusFilter) return false;
     return true;
@@ -812,6 +927,7 @@ function renderRecordsTable(){
   body.innerHTML = rows.map(r => `
     <tr>
       <td>${escapeHtml(r.emp)}</td>
+      <td>${escapeHtml(r.category || '—')}</td>
       <td>${escapeHtml(r.courseName)}</td>
       <td>${r.date ? escapeHtml(r.date) : '—'}</td>
       <td>${r.score}/${r.max}</td>
@@ -829,6 +945,8 @@ function renderRecordsTable(){
 
 function renderAll(){
   renderConnectionBanner();
+  renderCategoryTabs();
+  renderCourseFilterOptions();
   renderStats();
   renderMatrix();
   renderRecordsTable();
@@ -951,18 +1069,33 @@ function renderManageModal(){
       <input type="text" class="mg-course-name" data-id="${c.id}" value="${escapeHtml(c.name)}">
       <span class="max-label">max</span>
       <input type="number" min="1" step="0.5" class="mg-course-max" data-id="${c.id}" value="${c.max}">
+      <select class="mg-course-category" data-id="${c.id}">
+        ${CATEGORIES.map(cat => `<option value="${escapeHtml(cat)}" ${cat === c.category ? 'selected' : ''}>${escapeHtml(cat)}</option>`).join('')}
+      </select>
       <button class="btn-danger-text" data-action="removeCourse" data-id="${c.id}">Remove</button>
     </div>
   `).join('') : '<div class="manage-empty">No courses yet.</div>';
 
+  const categoryRows = CATEGORIES.length ? CATEGORIES.map(cat => {
+    const count = COURSES.filter(c => c.category === cat).length;
+    return `
+    <div class="manage-row">
+      <input type="text" class="mg-category-input" data-original="${escapeHtml(cat)}" value="${escapeHtml(cat)}">
+      <span class="max-label">${count} course${count === 1 ? '' : 's'}</span>
+      <button class="btn-danger-text" data-action="removeCategory" data-cat="${escapeHtml(cat)}">Remove</button>
+    </div>
+  `;
+  }).join('') : '<div class="manage-empty">No categories yet.</div>';
+
   root.innerHTML = `
     <div class="modal-overlay" id="modalOverlay">
       <div class="modal modal-wide">
-        <h3>Manage employees &amp; courses</h3>
+        <h3>Manage employees, courses &amp; categories</h3>
         <p class="modal-sub">Changes save immediately and apply across the whole tracker.</p>
         <div class="manage-tabs">
           <button class="tab-btn ${manageTab==='employees'?'active':''}" data-tab="employees">Employees (${EMPLOYEES.length})</button>
           <button class="tab-btn ${manageTab==='courses'?'active':''}" data-tab="courses">Courses (${COURSES.length})</button>
+          <button class="tab-btn ${manageTab==='categories'?'active':''}" data-tab="categories">Categories (${CATEGORIES.length})</button>
         </div>
 
         <div id="panelEmployees" style="display:${manageTab==='employees'?'block':'none'};">
@@ -977,9 +1110,21 @@ function renderManageModal(){
           <div class="manage-add-row">
             <input type="text" id="newCourseName" placeholder="New course name">
             <input type="number" id="newCourseMax" placeholder="Max" min="1" step="0.5">
+            <select id="newCourseCategory">
+              ${CATEGORIES.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join('')}
+            </select>
             <button class="btn btn-primary" id="addCourseBtn">Add</button>
           </div>
           <div class="manage-list">${courseRows}</div>
+        </div>
+
+        <div id="panelCategories" style="display:${manageTab==='categories'?'block':'none'};">
+          <p class="modal-sub" style="margin-top:-4px;">Categories group courses into an initiative — e.g. Oliver Product Foundation, Industry Knowledge.</p>
+          <div class="manage-add-row">
+            <input type="text" id="newCategoryInput" placeholder="New category name">
+            <button class="btn btn-primary" id="addCategoryBtn">Add</button>
+          </div>
+          <div class="manage-list">${categoryRows}</div>
         </div>
 
         <div class="modal-actions">
@@ -1015,6 +1160,17 @@ function renderManageModal(){
     input.addEventListener('blur', () => updateCourseMax(input.dataset.id, input.value));
   });
   root.querySelectorAll('[data-action="removeCourse"]').forEach(b => b.addEventListener('click', () => removeCourse(b.dataset.id)));
+
+  document.getElementById('addCategoryBtn').addEventListener('click', addCategory);
+  document.getElementById('newCategoryInput').addEventListener('keydown', e => { if(e.key === 'Enter') addCategory(); });
+  root.querySelectorAll('.mg-course-category').forEach(sel => {
+    sel.addEventListener('change', () => updateCourseCategory(sel.dataset.id, sel.value));
+  });
+  root.querySelectorAll('.mg-category-input').forEach(input => {
+    input.addEventListener('keydown', e => { if(e.key === 'Enter') input.blur(); });
+    input.addEventListener('blur', () => renameCategory(input.dataset.original, input.value));
+  });
+  root.querySelectorAll('[data-action="removeCategory"]').forEach(b => b.addEventListener('click', () => removeCategory(b.dataset.cat)));
 }
 
 async function addEmployee(){
@@ -1071,18 +1227,78 @@ async function removeEmployee(name){
 async function addCourse(){
   const nameInput = document.getElementById('newCourseName');
   const maxInput = document.getElementById('newCourseMax');
+  const categoryInput = document.getElementById('newCourseCategory');
   const name = nameInput.value.trim();
   const max = parseFloat(maxInput.value);
+  const category = (categoryInput && categoryInput.value) || CATEGORIES[0] || 'Oliver Product Foundation';
   if(!name){ showToast('Enter a course name.'); return; }
   if(isNaN(max) || max <= 0){ showToast('Enter a max score greater than 0.'); return; }
   if(COURSES.some(c => c.name.toLowerCase() === name.toLowerCase())){ showToast('That course already exists.'); return; }
   const id = makeCourseId(name);
-  COURSES.push({ id, name, max, updatedAt: Date.now() });
+  COURSES.push({ id, name, max, category, updatedAt: Date.now() });
   await saveCourses();
   renderCourseFilterOptions();
   renderManageModal();
   renderAll();
   showToast('Course added.');
+}
+
+async function updateCourseCategory(id, category){
+  const course = courseById(id);
+  if(!course || course.category === category) return;
+  course.category = category;
+  course.updatedAt = Date.now();
+  await saveCourses();
+  renderCourseFilterOptions();
+  renderAll();
+  showToast('Course category updated.');
+}
+
+async function addCategory(){
+  const input = document.getElementById('newCategoryInput');
+  const name = input.value.trim();
+  if(!name){ showToast('Enter a category name.'); return; }
+  if(CATEGORIES.some(c => c.toLowerCase() === name.toLowerCase())){ showToast('That category already exists.'); return; }
+  CATEGORIES.push(name);
+  await saveCategories();
+  renderManageModal();
+  renderAll();
+  showToast('Category added.');
+}
+
+async function renameCategory(oldName, newNameRaw){
+  const newName = newNameRaw.trim();
+  if(newName === oldName) return;
+  if(!newName){ renderManageModal(); showToast('Category name can\'t be empty.'); return; }
+  if(CATEGORIES.some(c => c !== oldName && c.toLowerCase() === newName.toLowerCase())){
+    renderManageModal();
+    showToast('Another category already has that name.');
+    return;
+  }
+  const idx = CATEGORIES.indexOf(oldName);
+  if(idx === -1) return;
+  CATEGORIES[idx] = newName;
+  COURSES.forEach(c => { if(c.category === oldName){ c.category = newName; c.updatedAt = Date.now(); } });
+  if(activeCategory === oldName) activeCategory = newName;
+  await Promise.all([saveCategories(), saveCourses()]);
+  renderManageModal();
+  renderAll();
+  showToast('Category renamed.');
+}
+
+async function removeCategory(name){
+  const count = COURSES.filter(c => c.category === name).length;
+  if(count){
+    showToast(`Can't remove "${name}" — ${count} course${count === 1 ? '' : 's'} still use it. Reassign them first.`);
+    return;
+  }
+  if(!confirm(`Remove category "${name}"?`)) return;
+  CATEGORIES = CATEGORIES.filter(c => c !== name);
+  if(activeCategory === name) activeCategory = '';
+  await saveCategories();
+  renderManageModal();
+  renderAll();
+  showToast('Category removed.');
 }
 
 async function renameCourse(id, newNameRaw){
@@ -1169,10 +1385,11 @@ function openBackupModal(){
 function downloadBackup(){
   const payload = {
     type: 'training-tracker-backup',
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     employees: EMPLOYEES,
     courses: COURSES,
+    categories: CATEGORIES,
     records: records
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
@@ -1204,17 +1421,17 @@ function handleBackupFile(e){
       return;
     }
     const summary = mergeBackup(data);
-    await Promise.all([saveEmployees(), saveCourses(), saveRecords()]);
+    await Promise.all([saveEmployees(), saveCourses(), saveCategories(), saveRecords()]);
     renderCourseFilterOptions();
     closeModal();
     renderAll();
-    showToast(`Merged: ${summary.newEmployees} new employee(s), ${summary.newCourses} new course(s), ${summary.newRecords} new record(s), ${summary.updatedRecords} updated.`);
+    showToast(`Merged: ${summary.newEmployees} new employee(s), ${summary.newCourses} new course(s), ${summary.newCategories} new categor${summary.newCategories === 1 ? 'y' : 'ies'}, ${summary.newRecords} new record(s), ${summary.updatedRecords} updated.`);
   };
   reader.readAsText(file);
 }
 
 function mergeBackup(data){
-  const summary = { newEmployees:0, newCourses:0, newRecords:0, updatedRecords:0 };
+  const summary = { newEmployees:0, newCourses:0, newCategories:0, newRecords:0, updatedRecords:0 };
 
   // Employees: union, case-insensitive de-dupe
   const existingLower = EMPLOYEES.map(e => e.toLowerCase());
@@ -1226,10 +1443,21 @@ function mergeBackup(data){
     }
   });
 
+  // Categories: union, case-insensitive de-dupe
+  const existingCatLower = CATEGORIES.map(c => c.toLowerCase());
+  (data.categories || []).forEach(cat => {
+    if(!existingCatLower.includes(String(cat).toLowerCase())){
+      CATEGORIES.push(cat);
+      existingCatLower.push(String(cat).toLowerCase());
+      summary.newCategories++;
+    }
+  });
+
   // Courses: merge by id, newer updatedAt wins on conflict
   (data.courses || []).forEach(incoming => {
     const local = courseById(incoming.id);
     if(!local){
+      if(!incoming.category) incoming.category = 'Oliver Product Foundation';
       COURSES.push(incoming);
       summary.newCourses++;
     } else {
@@ -1238,10 +1466,13 @@ function mergeBackup(data){
       if(incomingTime > localTime){
         local.name = incoming.name;
         local.max = incoming.max;
+        local.category = incoming.category || local.category;
         local.updatedAt = incomingTime;
       }
     }
   });
+
+  reconcileCategories();
 
   // Records: merge by key, newer updatedAt wins on conflict
   Object.keys(data.records || {}).forEach(key => {
@@ -1306,16 +1537,16 @@ function openExportModal(){
 
 function downloadCsv(singleEmployee){
   const employees = singleEmployee ? [singleEmployee] : EMPLOYEES;
-  const rows = [['Employee','Course','Date Completed','Score','Max Score','Status','Passed After Retry']];
+  const rows = [['Employee','Category','Course','Date Completed','Score','Max Score','Status','Passed After Retry']];
   employees.forEach(emp => {
     COURSES.forEach(c => {
       const rec = records[recKey(emp, c.id)];
       if(rec){
         const status = statusFor(rec.score, c.max);
         const retry = status === 'Pass' && rec.hadPriorFail ? 'Yes' : '';
-        rows.push([emp, c.name, rec.date, rec.score, c.max, status, retry]);
+        rows.push([emp, c.category || '', c.name, rec.date, rec.score, c.max, status, retry]);
       } else {
-        rows.push([emp, c.name, '', '', c.max, 'Not Started', '']);
+        rows.push([emp, c.category || '', c.name, '', '', c.max, 'Not Started', '']);
       }
     });
   });
@@ -1352,6 +1583,7 @@ async function clearAll(){
 /* ---------- Init ---------- */
 async function init(){
   await Promise.all([loadEmployees(), loadCourses()]);
+  await loadCategories();
   renderCourseFilterOptions();
   await loadRecords();
   renderAll();
