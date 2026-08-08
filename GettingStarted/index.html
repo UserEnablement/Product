@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oliver Admin · Module 01 — Getting Started</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Serif+4:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F3EEE1;
+    --folder:#E7DFC9;
+    --surface:#FFFEF9;
+    --ink:#2B2620;
+    --muted:#786F5E;
+    --line:#D9CFB4;
+    --stamp:#A23E2E;
+    --stamp-soft:#F3E1DC;
+    --pine:#2F5D50;
+    --pine-soft:#E1EDE7;
+    --gold:#B8862A;
+    --gold-soft:#F5E9CE;
+    --radius:14px;
+    --shadow: 0 14px 34px rgba(43,38,32,.14);
+    --display:"Fraunces", serif;
+    --body:"Source Serif 4", Georgia, serif;
+    --mono:"IBM Plex Mono", monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  @media (prefers-reduced-motion: reduce){ *{animation-duration:.001ms !important; transition-duration:.001ms !important;} }
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); line-height:1.65; -webkit-font-smoothing:antialiased;}
+  a{color:var(--pine);}
+  button{font-family:inherit;}
+
+  .layout{max-width:1180px; margin:0 auto; padding:0 24px; display:grid; grid-template-columns:1fr 320px; gap:28px; align-items:start;}
+  @media (max-width:960px){ .layout{grid-template-columns:1fr;} }
+
+  /* ---------- topbar ---------- */
+  .topbar{position:sticky; top:0; z-index:60; background:rgba(243,238,225,.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--line);}
+  .topbar-inner{max-width:1180px; margin:0 auto; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+  .brand{font-family:var(--display); font-weight:600; font-size:1.02rem; display:flex; align-items:baseline; gap:10px;}
+  .brand small{font-family:var(--mono); font-weight:400; font-size:.66rem; letter-spacing:.05em; color:var(--muted); text-transform:uppercase;}
+  .progress-wrap{flex:1; min-width:160px; max-width:340px;}
+  .progress-track{height:6px; border-radius:20px; background:var(--folder); overflow:hidden; border:1px solid var(--line);}
+  .progress-fill{height:100%; width:0%; background:var(--pine); transition:width .35s ease;}
+  .progress-label{font-family:var(--mono); font-size:.62rem; color:var(--muted); margin-top:4px; text-transform:uppercase; letter-spacing:.04em;}
+
+  /* ---------- hero ---------- */
+  .hero{padding:44px 0 8px;}
+  .kicker{font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--pine); display:flex; align-items:center; gap:10px; margin:0 0 16px;}
+  .kicker::before{content:""; width:24px; height:2px; background:var(--pine);}
+  h1{font-family:var(--display); font-weight:600; font-size:clamp(1.7rem,3.4vw,2.35rem); line-height:1.16; margin:0 0 14px; color:var(--ink);}
+  .lede{font-size:1rem; color:#3d362c; max-width:60ch; margin:0 0 22px;}
+
+  .call-strip{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:8px;}
+  .call-card{display:flex; align-items:center; gap:12px; background:var(--surface); border:1.5px solid var(--line); border-radius:var(--radius); padding:12px 16px; text-decoration:none; color:var(--ink); transition:transform .12s, box-shadow .15s, border-color .15s;}
+  .call-card:hover{transform:translateY(-2px); box-shadow:var(--shadow); border-color:var(--pine);}
+  .call-icon{width:34px; height:34px; border-radius:50%; background:var(--pine); color:#fff; display:flex; align-items:center; justify-content:center; flex:none;}
+  .call-icon svg{width:16px; height:16px;}
+  .call-txt .lbl{font-family:var(--mono); font-size:.6rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); display:block;}
+  .call-txt .ttl{font-family:var(--display); font-weight:600; font-size:.92rem;}
+
+  /* ---------- sections ---------- */
+  section{padding:34px 0; border-bottom:1px solid var(--line); scroll-margin-top:80px;}
+  section:last-of-type{border-bottom:none;}
+  .sec-head{display:flex; align-items:center; gap:12px; margin-bottom:18px;}
+  .sec-num{font-family:var(--mono); font-size:.72rem; color:var(--muted); border:1px solid var(--line); border-radius:20px; padding:3px 10px; background:var(--surface);}
+  .sec-head h2{font-family:var(--display); font-weight:600; font-size:1.28rem; margin:0; color:var(--ink);}
+  .sec-time{margin-left:auto; font-family:var(--mono); font-size:.68rem; color:var(--muted);}
+
+  .panel{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:22px 24px; box-shadow:0 3px 10px rgba(43,38,32,.05);}
+  .panel + .panel{margin-top:14px;}
+
+  .obj-list{list-style:none; margin:0; padding:0; display:grid; gap:10px;}
+  .obj-list li{display:flex; gap:10px; align-items:flex-start; font-size:.9rem;}
+  .obj-list .num{font-family:var(--mono); font-size:.72rem; color:#fff; background:var(--pine); border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; flex:none; margin-top:1px;}
+
+  .meta-row{display:flex; gap:22px; flex-wrap:wrap; font-size:.84rem; color:var(--muted); margin-top:14px;}
+  .meta-row b{color:var(--ink); font-weight:600;}
+
+  .action-btn{display:inline-flex; align-items:center; gap:8px; background:var(--ink); color:#fff; font-weight:600; font-size:.85rem; text-decoration:none; padding:11px 20px; border-radius:24px; border:none; cursor:pointer; transition:transform .12s, box-shadow .15s;}
+  .action-btn:hover{transform:translateY(-1px); box-shadow:var(--shadow);}
+  .action-btn.ghost{background:var(--surface); color:var(--ink); border:1.5px solid var(--line);}
+  .action-btn.gold{background:var(--gold);}
+
+  /* apply section task cards */
+  .task-card{border:1px solid var(--line); border-radius:12px; padding:16px 18px; background:var(--surface); margin-bottom:12px;}
+  .task-card:last-child{margin-bottom:0;}
+  .task-top{display:flex; align-items:center; gap:10px; margin-bottom:8px;}
+  .task-check{width:20px; height:20px; border:2px solid var(--pine); border-radius:5px; flex:none; cursor:pointer; display:flex; align-items:center; justify-content:center; background:var(--surface);}
+  .task-check.checked{background:var(--pine);}
+  .task-check.checked::after{content:"✓"; color:#fff; font-size:.72rem; font-weight:700;}
+  .task-title{font-weight:600; font-size:.92rem;}
+  .task-obj{font-family:var(--mono); font-size:.62rem; color:var(--pine); background:var(--pine-soft); border-radius:20px; padding:2px 9px; margin-left:auto;}
+  .task-fields{display:grid; gap:8px; margin-top:8px; padding-left:30px;}
+  .task-fields label{font-size:.76rem; color:var(--muted); display:block; margin-bottom:3px;}
+  .task-fields input[type=text]{width:100%; border:1px solid var(--line); border-radius:8px; padding:7px 10px; font-family:var(--body); font-size:.85rem; background:var(--paper);}
+
+  .contact-note{font-size:.82rem; color:var(--muted); background:var(--gold-soft); border:1px solid var(--gold); border-radius:10px; padding:10px 14px; margin-top:14px;}
+
+  /* observations */
+  .obs-grid{display:grid; gap:12px;}
+  .obs-grid label{font-size:.82rem; font-weight:600; color:var(--ink); display:block; margin-bottom:5px;}
+  .obs-grid textarea{width:100%; min-height:56px; border:1px solid var(--line); border-radius:10px; padding:9px 12px; font-family:var(--body); font-size:.87rem; background:var(--paper); resize:vertical;}
+
+  /* quick check */
+  .qc-list{list-style:none; margin:0; padding:0; display:grid; gap:10px;}
+  .qc-list li{font-size:.9rem; padding:12px 14px; border:1px dashed var(--line); border-radius:10px; background:var(--surface);}
+  .qc-reveal{margin-top:14px;}
+  .qc-answer{display:none; font-size:.82rem; color:var(--muted); margin-top:6px; padding-top:6px; border-top:1px dashed var(--line);}
+  .qc-answer.show{display:block;}
+
+  /* close / stamp */
+  .close-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:28px; text-align:center; position:relative; overflow:hidden;}
+  .stamp{display:inline-block; font-family:var(--mono); font-weight:600; font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--stamp); border:2px solid var(--stamp); border-radius:8px; padding:8px 16px; transform:rotate(-3deg); margin-bottom:16px;}
+  .stamp.done{color:var(--pine); border-color:var(--pine);}
+
+  footer{padding:36px 0 60px; text-align:center;}
+  footer .fine{font-size:.72rem; color:var(--muted);}
+
+  /* ---------- sidebar case file ---------- */
+  .sidebar{position:sticky; top:80px; align-self:start;}
+  .file-tab{background:var(--pine); color:#fff; font-family:var(--mono); font-size:.62rem; letter-spacing:.06em; text-transform:uppercase; padding:6px 14px; border-radius:8px 8px 0 0; display:inline-block; margin-left:14px;}
+  .file{background:var(--folder); border:1px solid var(--line); border-radius:4px 12px 12px 12px; box-shadow:var(--shadow); padding:18px 18px 20px;}
+  .file-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px;}
+  .file-head h3{font-family:var(--display); font-weight:600; font-size:1rem; margin:0;}
+  .file-head span{font-family:var(--mono); font-size:.62rem; color:var(--muted);}
+  .file-section{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:12px 13px; margin-bottom:10px;}
+  .file-section h4{font-family:var(--mono); font-size:.62rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:0 0 8px;}
+  .file-row{display:flex; justify-content:space-between; gap:8px; font-size:.78rem; padding:3px 0; border-bottom:1px dashed var(--line);}
+  .file-row:last-child{border-bottom:none;}
+  .file-row .k{color:var(--muted);}
+  .file-row .v{font-weight:600; color:var(--ink); text-align:right; max-width:56%; overflow-wrap:anywhere;}
+  .file-row .v.empty{color:#B8AF97; font-weight:400; font-style:italic;}
+  .file-status{display:flex; align-items:center; gap:6px; font-size:.76rem; margin-top:2px;}
+  .file-status .dot{width:8px; height:8px; border-radius:50%; background:#C9BFA0; flex:none;}
+  .file-status.on .dot{background:var(--pine);}
+  .file-download{width:100%; margin-top:6px;}
+  .file-hint{font-size:.68rem; color:var(--muted); text-align:center; margin-top:8px;}
+
+  @media (max-width:960px){ .sidebar{position:relative; top:0;} }
+
+  @media print{ .topbar,.call-strip,.sidebar,.action-btn{display:none !important;} }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Oliver Admin <small>Training Series</small></div>
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">0 / 6 tasks logged</div>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <main>
+    <div class="hero">
+      <p class="kicker">Module 01 · Getting Started</p>
+      <h1>Learn the basics of logging in, choosing a plan, navigating the dashboard, and finding support.</h1>
+      <p class="lede">This module walks new plan administrators through their first steps in Oliver Admin — from login to logout — while you build a Case File documenting what you find along the way.</p>
+
+      <div class="call-strip">
+        <a class="call-card" href="https://userenablement.github.io/Product/OVGSStart/" target="_blank" rel="noopener">
+          <span class="call-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M4 4l12 6-12 6V4z" fill="currentColor"/></svg></span>
+          <span class="call-txt"><span class="lbl">Kickoff call</span><span class="ttl">Start with Olive ↗</span></span>
+        </a>
+      </div>
+
+      <div class="meta-row">
+        <span><b>Audience:</b> New plan administrators, no prior experience</span>
+        <span><b>Prerequisites:</b> None — first module in the series</span>
+      </div>
+    </div>
+
+    <!-- OPENING -->
+    <section id="opening">
+      <div class="sec-head"><span class="sec-num">Opening</span><h2>Before you begin</h2><span class="sec-time">~2 min</span></div>
+      <div class="panel">
+        <p style="margin-top:0;">Start with the practice activity, then complete the tasks in the live system. Use the guide as your reference whenever you need a reminder.</p>
+        <p style="margin-bottom:0; font-weight:600;">By the end of this module, you will be able to:</p>
+        <ul class="obj-list" style="margin-top:12px;">
+          <li><span class="num">1</span><span>Log in to Oliver Admin using your credentials.</span></li>
+          <li><span class="num">2</span><span>Select the correct plan if more than one plan is available.</span></li>
+          <li><span class="num">3</span><span>Identify the main areas of the dashboard.</span></li>
+          <li><span class="num">4</span><span>Open the Task List and Help menu.</span></li>
+          <li><span class="num">5</span><span>Access Documentation and Send Feedback.</span></li>
+          <li><span class="num">6</span><span>Change your password and review Account Settings.</span></li>
+          <li><span class="num">7</span><span>Log out securely when finished.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- PRACTICE -->
+    <section id="practice">
+      <div class="sec-head"><span class="sec-num">Step 1</span><h2>Practice</h2><span class="sec-time">~5–6 min</span></div>
+      <div class="panel">
+        <p style="margin-top:0;">Use the simulation to practice the steps before you try them in the live system. You'll be prompted to log in, select a plan, open Help, and review the dashboard.</p>
+        <a class="action-btn" href="https://userenablement.github.io/Product/Admin01GettingStarted/" target="_blank" rel="noopener">Start the practice activity ↗</a>
+      </div>
+    </section>
+
+    <!-- APPLY -->
+    <section id="apply">
+      <div class="sec-head"><span class="sec-num">Step 2</span><h2>Apply — Live System Tasks</h2><span class="sec-time">~8–10 min</span></div>
+      <p style="color:var(--muted); font-size:.88rem; margin-top:0;">Complete each task in the real environment, then check it off and record what you find. Your entries build the Case File in the panel to the right.</p>
+
+      <div class="task-card" data-task="1">
+        <div class="task-top"><button class="task-check" data-check="1"></button><span class="task-title">Log in</span><span class="task-obj">Obj. 1</span></div>
+        <div class="task-fields">
+          <div><label>Client code used</label><input type="text" data-field="clientCode" placeholder="e.g. OLV-1042"></div>
+          <div><label>Username used</label><input type="text" data-field="username" placeholder="Your login username"></div>
+          <div><label>Was plan selection required after login?</label><input type="text" data-field="planSelectionRequired" placeholder="Yes / No"></div>
+        </div>
+      </div>
+
+      <div class="task-card" data-task="2">
+        <div class="task-top"><button class="task-check" data-check="2"></button><span class="task-title">Confirm the correct plan</span><span class="task-obj">Obj. 2</span></div>
+        <div class="task-fields">
+          <div><label>Plan name selected</label><input type="text" data-field="planName" placeholder="Plan name"></div>
+          <div><label>Number of plans available on your account</label><input type="text" data-field="planCount" placeholder="e.g. 2"></div>
+        </div>
+      </div>
+
+      <div class="task-card" data-task="3">
+        <div class="task-top"><button class="task-check" data-check="3"></button><span class="task-title">Find the dashboard &amp; open the Task List</span><span class="task-obj">Obj. 3, 4</span></div>
+        <div class="task-fields">
+          <div><label>Three modules you'll likely use most</label><input type="text" data-field="topModules" placeholder="e.g. Enrollment, Billing, Reports"></div>
+          <div><label>One module you'd like to learn more about</label><input type="text" data-field="curiousModule" placeholder="Module name"></div>
+        </div>
+      </div>
+
+      <div class="task-card" data-task="4">
+        <div class="task-top"><button class="task-check" data-check="4"></button><span class="task-title">Open Help &gt; Documentation</span><span class="task-obj">Obj. 4, 5</span></div>
+        <div class="task-fields">
+          <div><label>Help resource you expect to use most often</label><input type="text" data-field="helpResource" placeholder="e.g. Knowledge Base, Chat support"></div>
+        </div>
+      </div>
+
+      <div class="task-card" data-task="5">
+        <div class="task-top"><button class="task-check" data-check="5"></button><span class="task-title">Review Account Settings</span><span class="task-obj">Obj. 6</span></div>
+        <div class="task-fields">
+          <div><label>Current language preference</label><input type="text" data-field="language" placeholder="e.g. English (Canada)"></div>
+          <div><label>Notification settings available</label><input type="text" data-field="notifications" placeholder="e.g. Email, In-app"></div>
+          <div><label>Other settings you noticed</label><input type="text" data-field="otherSettings" placeholder="Anything else"></div>
+        </div>
+      </div>
+
+      <div class="task-card" data-task="6">
+        <div class="task-top"><button class="task-check" data-check="6"></button><span class="task-title">Log out</span><span class="task-obj">Obj. 7</span></div>
+        <div class="task-fields">
+          <div><label>Did the system return you to the login screen?</label><input type="text" data-field="loggedOutClean" placeholder="Yes / No"></div>
+        </div>
+      </div>
+
+      <div class="contact-note">Don't currently have access to the training environment? Contact Ramana to get set up before starting this section.</div>
+    </section>
+
+    <!-- OBSERVATIONS -->
+    <section id="observations">
+      <div class="sec-head"><span class="sec-num">Reflect</span><h2>My Observations</h2></div>
+      <div class="panel obs-grid">
+        <div>
+          <label for="obs1">Today I discovered...</label>
+          <textarea id="obs1" data-field="obsDiscovered"></textarea>
+        </div>
+        <div>
+          <label for="obs2">Something that surprised me...</label>
+          <textarea id="obs2" data-field="obsSurprised"></textarea>
+        </div>
+        <div>
+          <label for="obs3">One thing I'd like to understand better...</label>
+          <textarea id="obs3" data-field="obsUnderstand"></textarea>
+        </div>
+        <div>
+          <label for="obs4">Open questions for my trainer or manager...</label>
+          <textarea id="obs4" data-field="obsQuestions"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- SAVE -->
+    <section id="save">
+      <div class="sec-head"><span class="sec-num">Step 3</span><h2>Save for Later</h2><span class="sec-time">~1 min</span></div>
+      <div class="panel">
+        <p style="margin-top:0;">Use the user guide as your step-by-step job aid when you need to revisit this process later.</p>
+        <button class="action-btn ghost" id="downloadGuideBtn">Download the user guide</button>
+        <p style="margin:14px 0 0; font-size:.82rem; color:var(--muted);">Knowledge Base — not yet available for this module.</p>
+      </div>
+    </section>
+
+    <!-- CHECK -->
+    <section id="check">
+      <div class="sec-head"><span class="sec-num">Check</span><h2>Quick Check</h2><span class="sec-time">~2 min</span></div>
+      <div class="panel">
+        <p style="margin-top:0; color:var(--muted); font-size:.86rem;">Before you finish, make sure you can answer these questions.</p>
+        <ul class="qc-list">
+          <li>Where do you enter your client code?
+            <div class="qc-answer" data-a="1">On the login screen, before you enter your username and password.</div>
+          </li>
+          <li>How do you switch plans?
+            <div class="qc-answer" data-a="2">From the plan selector shown after login, if more than one plan is available on your account.</div>
+          </li>
+          <li>Where do you find Documentation?
+            <div class="qc-answer" data-a="3">Under the Help menu on the dashboard.</div>
+          </li>
+          <li>What should you do when you finish working?
+            <div class="qc-answer" data-a="4">Log out securely so you're returned to the login screen.</div>
+          </li>
+        </ul>
+        <button class="action-btn ghost qc-reveal" id="revealBtn">Check my answers</button>
+      </div>
+    </section>
+
+    <!-- CLOSE -->
+    <section id="close">
+      <div class="sec-head"><span class="sec-num">Close</span><h2>Wrap-Up</h2></div>
+      <div class="close-card">
+        <span class="stamp" id="closeStamp">In Progress</span>
+        <p style="margin:0 0 6px; font-family:var(--display); font-weight:600; font-size:1.15rem;">Once you can complete the tasks above, you're ready for Module 02.</p>
+        <p style="margin:0 0 20px; color:var(--muted); font-size:.86rem;" id="closeSub">Complete all 6 tasks to unlock the wrap-up call and download your finished Case File.</p>
+        <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+          <button class="action-btn gold" id="downloadCaseBtn">Download my Case File</button>
+          <a class="action-btn" id="endCallBtn" href="https://userenablement.github.io/Product/OVGSEnd/" target="_blank" rel="noopener">Wrap up with Olive ↗</a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p class="fine">Module 01 of the Oliver Admin onboarding series. Sample rebuild of a Sway-based lesson — Sway sequenced the video, simulation, workbook, and reference docs into one path; this page reproduces that flow without Sway.</p>
+    </footer>
+  </main>
+
+  <aside class="sidebar">
+    <span class="file-tab">Live Case File</span>
+    <div class="file">
+      <div class="file-head">
+        <h3>Getting Started</h3>
+        <span id="fileDate"></span>
+      </div>
+
+      <div class="file-section">
+        <h4>Assignment</h4>
+        <div class="file-row"><span class="k">Module</span><span class="v">01 — Getting Started</span></div>
+        <div class="file-row"><span class="k">Client</span><span class="v">Not applicable — onboarding</span></div>
+      </div>
+
+      <div class="file-section" id="fileTasks">
+        <h4>Investigation Log</h4>
+        <!-- populated by JS -->
+      </div>
+
+      <div class="file-section">
+        <div class="file-status" id="fileStatus"><span class="dot"></span><span>0 of 6 tasks recorded</span></div>
+      </div>
+
+      <button class="action-btn ghost file-download" id="sidebarDownloadBtn">Download Case File (.txt)</button>
+      <p class="file-hint">Stays visible as you work — download anytime, finished or not.</p>
+    </div>
+  </aside>
+</div>
+
+<script>
+const FIELD_LABELS = {
+  clientCode:"Client code used", username:"Username used", planSelectionRequired:"Plan selection required after login",
+  planName:"Plan name selected", planCount:"Number of plans available",
+  topModules:"Three modules you'll likely use most", curiousModule:"Module to learn more about",
+  helpResource:"Help resource used most often",
+  language:"Current language preference", notifications:"Notification settings available", otherSettings:"Other settings noticed",
+  loggedOutClean:"Returned to login screen on sign out",
+  obsDiscovered:"Today I discovered", obsSurprised:"Something that surprised me", obsUnderstand:"One thing I'd like to understand better", obsQuestions:"Open questions for my trainer or manager"
+};
+const TASK_FIELDS = {
+  1:["clientCode","username","planSelectionRequired"],
+  2:["planName","planCount"],
+  3:["topModules","curiousModule"],
+  4:["helpResource"],
+  5:["language","notifications","otherSettings"],
+  6:["loggedOutClean"]
+};
+
+const state = { fields:{}, checked:{1:false,2:false,3:false,4:false,5:false,6:false} };
+
+document.getElementById("fileDate").textContent = new Date().toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"});
+
+document.querySelectorAll("[data-field]").forEach(el=>{
+  el.addEventListener("input", ()=>{
+    state.fields[el.dataset.field] = el.value;
+    renderFile();
+  });
+});
+
+document.querySelectorAll(".task-check").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const n = btn.dataset.check;
+    state.checked[n] = !state.checked[n];
+    btn.classList.toggle("checked", state.checked[n]);
+    renderFile();
+    renderProgress();
+    renderClose();
+  });
+});
+
+function renderFile(){
+  const wrap = document.getElementById("fileTasks");
+  let html = "<h4>Investigation Log</h4>";
+  Object.entries(TASK_FIELDS).forEach(([taskNum, fields])=>{
+    fields.forEach(f=>{
+      const v = (state.fields[f] || "").trim();
+      html += `<div class="file-row"><span class="k">${FIELD_LABELS[f]}</span><span class="v ${v?"":"empty"}">${v || "—"}</span></div>`;
+    });
+  });
+  wrap.innerHTML = html;
+}
+
+function renderProgress(){
+  const done = Object.values(state.checked).filter(Boolean).length;
+  document.getElementById("progressFill").style.width = (done/6*100) + "%";
+  document.getElementById("progressLabel").textContent = `${done} / 6 tasks logged`;
+  const statusEl = document.getElementById("fileStatus");
+  statusEl.classList.toggle("on", done === 6);
+  statusEl.querySelector("span:last-child").textContent = `${done} of 6 tasks recorded`;
+}
+
+function renderClose(){
+  const done = Object.values(state.checked).filter(Boolean).length;
+  const stamp = document.getElementById("closeStamp");
+  const sub = document.getElementById("closeSub");
+  if (done === 6){
+    stamp.textContent = "Request Complete";
+    stamp.classList.add("done");
+    sub.textContent = "All tasks recorded. Download your finished Case File and wrap up with Olive.";
+  } else {
+    stamp.textContent = "In Progress";
+    stamp.classList.remove("done");
+    sub.textContent = "Complete all 6 tasks to unlock the wrap-up call and download your finished Case File.";
+  }
+}
+
+function buildCaseFileText(){
+  const lines = [];
+  lines.push("OLIVER ADMIN — TRAINING SERIES");
+  lines.push("Module 01 · Getting Started · Case File");
+  lines.push("=".repeat(50));
+  lines.push("");
+  lines.push("SECTION 1 — ASSIGNMENT DETAILS");
+  lines.push(`Date: ${new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}`);
+  lines.push("Module: 01 — Getting Started");
+  lines.push("Client: Not applicable — onboarding");
+  lines.push("");
+  lines.push("SECTION 2 — INVESTIGATION LOG");
+  Object.entries(TASK_FIELDS).forEach(([taskNum, fields])=>{
+    lines.push(`Task ${taskNum} ${state.checked[taskNum] ? "[x]" : "[ ]"}`);
+    fields.forEach(f=>{
+      lines.push(`  - ${FIELD_LABELS[f]}: ${(state.fields[f]||"").trim() || "(not recorded)"}`);
+    });
+  });
+  lines.push("");
+  lines.push("SECTION 3 — MY OBSERVATIONS");
+  ["obsDiscovered","obsSurprised","obsUnderstand"].forEach(f=>{
+    lines.push(`${FIELD_LABELS[f]}: ${(state.fields[f]||"").trim() || "(not recorded)"}`);
+  });
+  lines.push("");
+  lines.push("SECTION 4 — OPEN QUESTIONS");
+  lines.push((state.fields.obsQuestions||"").trim() || "(none recorded)");
+  lines.push("");
+  const doneCount = Object.values(state.checked).filter(Boolean).length;
+  lines.push("SECTION 5 — CASE STATUS");
+  lines.push(doneCount === 6 ? "Request Complete — all tasks recorded." : `In progress — ${doneCount} of 6 tasks recorded.`);
+  return lines.join("\n");
+}
+
+function downloadCaseFile(){
+  const blob = new Blob([buildCaseFileText()], {type:"text/plain"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "Module01_GettingStarted_CaseFile.txt";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+document.getElementById("sidebarDownloadBtn").addEventListener("click", downloadCaseFile);
+document.getElementById("downloadCaseBtn").addEventListener("click", downloadCaseFile);
+document.getElementById("downloadGuideBtn").addEventListener("click", ()=>{
+  alert("Link this button to the real Oliver Admin user guide PDF before publishing.");
+});
+
+document.getElementById("revealBtn").addEventListener("click", ()=>{
+  document.querySelectorAll(".qc-answer").forEach(a=>a.classList.add("show"));
+});
+
+renderFile();
+renderProgress();
+renderClose();
+</script>
+</body>
+</html>
